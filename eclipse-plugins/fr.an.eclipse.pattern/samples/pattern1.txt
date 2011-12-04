@@ -1,0 +1,392 @@
+<CompilationUnitP>
+  <optionalPackageDeclaration class="PackageDeclP">
+    <annotations class="DefaultListP">
+      <elements/>
+    </annotations>
+    <packageName class="QualifiedNameP">
+      <qualifier class="QualifiedNameP">
+        <qualifier class="QualifiedNameP">
+          <qualifier class="QualifiedNameP">
+            <qualifier class="SimpleNameP">
+              <identifier class="StringP">
+                <regexp>fr</regexp>
+              </identifier>
+            </qualifier>
+            <localName class="SimpleNameP">
+              <identifier class="StringP">
+                <regexp>an</regexp>
+              </identifier>
+            </localName>
+          </qualifier>
+          <localName class="SimpleNameP">
+            <identifier class="StringP">
+              <regexp>eclipse</regexp>
+            </identifier>
+          </localName>
+        </qualifier>
+        <localName class="SimpleNameP">
+          <identifier class="StringP">
+            <regexp>pattern</regexp>
+          </identifier>
+        </localName>
+      </qualifier>
+      <localName class="SimpleNameP">
+        <identifier class="StringP">
+          <regexp>testPattern1</regexp>
+        </identifier>
+      </localName>
+    </packageName>
+  </optionalPackageDeclaration>
+  <types class="DefaultListP">
+    <elements>
+      <TypeDeclP>
+        <modifierFlags class="ModifierFlagsP">
+          <modifiers>1</modifiers>
+        </modifierFlags>
+        <modifiers class="DefaultListP">
+          <elements>
+            <ModifierP>
+              <keyword class="StringP">
+                <regexp>public</regexp>
+              </keyword>
+            </ModifierP>
+          </elements>
+        </modifiers>
+        <typeName class="SimpleNameP">
+          <identifier class="StringP">
+            <regexp>TestObj1</regexp>
+          </identifier>
+        </typeName>
+        <bodyDeclarations class="DefaultListP">
+          <elements>
+            <FieldDeclP>
+              <modifierFlags class="ModifierFlagsP">
+                <modifiers>2</modifiers>
+              </modifierFlags>
+              <modifiers class="DefaultListP">
+                <elements>
+                  <ModifierP>
+                    <keyword class="StringP">
+                      <regexp>private</regexp>
+                    </keyword>
+                  </ModifierP>
+                </elements>
+              </modifiers>
+              <baseType class="PrimitiveTypeP">
+                <typeCode class="StringP">
+                  <regexp>int</regexp>
+                </typeCode>
+              </baseType>
+              <variableDeclarationFragments class="DefaultListP">
+                <elements>
+                  <VariableDeclarationFragmentP>
+                    <variableName class="SimpleNameP">
+                      <identifier class="StringP">
+                        <regexp>field1</regexp>
+                      </identifier>
+                    </variableName>
+                    <extraArrayDimensions class="IntegerP">
+                      <value>0</value>
+                    </extraArrayDimensions>
+                  </VariableDeclarationFragmentP>
+                </elements>
+              </variableDeclarationFragments>
+            </FieldDeclP>
+            <FieldDeclP>
+              <modifierFlags class="ModifierFlagsP">
+                <modifiers>2</modifiers>
+              </modifierFlags>
+              <modifiers class="DefaultListP">
+                <elements>
+                  <ModifierP>
+                    <keyword class="StringP">
+                      <regexp>private</regexp>
+                    </keyword>
+                  </ModifierP>
+                </elements>
+              </modifiers>
+              <baseType class="PrimitiveTypeP">
+                <typeCode class="StringP">
+                  <regexp>int</regexp>
+                </typeCode>
+              </baseType>
+              <variableDeclarationFragments class="DefaultListP">
+                <elements>
+                  <VariableDeclarationFragmentP>
+                    <variableName class="SimpleNameP">
+                      <identifier class="StringP">
+                        <regexp>field2</regexp>
+                      </identifier>
+                    </variableName>
+                    <extraArrayDimensions class="IntegerP">
+                      <value>0</value>
+                    </extraArrayDimensions>
+                  </VariableDeclarationFragmentP>
+                </elements>
+              </variableDeclarationFragments>
+            </FieldDeclP>
+            <MethodDeclP>
+              <modifierFlags class="ModifierFlagsP">
+                <modifiers>1</modifiers>
+              </modifierFlags>
+              <modifiers class="DefaultListP">
+                <elements>
+                  <ModifierP>
+                    <keyword class="StringP">
+                      <regexp>public</regexp>
+                    </keyword>
+                  </ModifierP>
+                </elements>
+              </modifiers>
+              <isConstructor class="BooleanP">
+                <value>false</value>
+              </isConstructor>
+              <methodName class="SimpleNameP">
+                <identifier class="StringP">
+                  <regexp>getField1</regexp>
+                </identifier>
+              </methodName>
+              <parameters class="DefaultListP">
+                <elements/>
+              </parameters>
+              <returnType class="PrimitiveTypeP">
+                <typeCode class="StringP">
+                  <regexp>int</regexp>
+                </typeCode>
+              </returnType>
+              <typeParameters class="DefaultListP">
+                <elements/>
+              </typeParameters>
+              <extraArrayDimensions class="IntegerP">
+                <value>0</value>
+              </extraArrayDimensions>
+              <thrownExceptions class="DefaultListP">
+                <elements/>
+              </thrownExceptions>
+              <body class="BlockP">
+                <statements class="DefaultListP">
+                  <elements>
+                    <ReturnStmtP>
+                      <expression class="SimpleNameP">
+                        <identifier class="StringP">
+                          <regexp>field1</regexp>
+                        </identifier>
+                      </expression>
+                    </ReturnStmtP>
+                  </elements>
+                </statements>
+              </body>
+            </MethodDeclP>
+            <MethodDeclP>
+              <modifierFlags class="ModifierFlagsP">
+                <modifiers>1</modifiers>
+              </modifierFlags>
+              <modifiers class="DefaultListP">
+                <elements>
+                  <ModifierP>
+                    <keyword class="StringP">
+                      <regexp>public</regexp>
+                    </keyword>
+                  </ModifierP>
+                </elements>
+              </modifiers>
+              <isConstructor class="BooleanP">
+                <value>false</value>
+              </isConstructor>
+              <methodName class="SimpleNameP">
+                <identifier class="StringP">
+                  <regexp>setField1</regexp>
+                </identifier>
+              </methodName>
+              <parameters class="DefaultListP">
+                <elements>
+                  <SimpleNameP>
+                    <identifier class="StringP">
+                      <regexp>field1</regexp>
+                    </identifier>
+                  </SimpleNameP>
+                </elements>
+              </parameters>
+              <returnType class="PrimitiveTypeP">
+                <typeCode class="StringP">
+                  <regexp>void</regexp>
+                </typeCode>
+              </returnType>
+              <typeParameters class="DefaultListP">
+                <elements/>
+              </typeParameters>
+              <extraArrayDimensions class="IntegerP">
+                <value>0</value>
+              </extraArrayDimensions>
+              <thrownExceptions class="DefaultListP">
+                <elements/>
+              </thrownExceptions>
+              <body class="BlockP">
+                <statements class="DefaultListP">
+                  <elements>
+                    <ExpressionStmtP>
+                      <expression class="AssignmentP">
+                        <assignmentOperator class="AssignmentOperatorP">
+                          <op class="StringP">
+                            <regexp>=</regexp>
+                          </op>
+                        </assignmentOperator>
+                        <leftHandSide class="FieldAccessP">
+                          <expression class="ThisExprP"/>
+                          <fieldName class="SimpleNameP">
+                            <identifier class="StringP">
+                              <regexp>field1</regexp>
+                            </identifier>
+                          </fieldName>
+                        </leftHandSide>
+                        <rightHandSide class="SimpleNameP">
+                          <identifier class="StringP">
+                            <regexp>field1</regexp>
+                          </identifier>
+                        </rightHandSide>
+                      </expression>
+                    </ExpressionStmtP>
+                  </elements>
+                </statements>
+              </body>
+            </MethodDeclP>
+            <MethodDeclP>
+              <modifierFlags class="ModifierFlagsP">
+                <modifiers>1</modifiers>
+              </modifierFlags>
+              <modifiers class="DefaultListP">
+                <elements>
+                  <ModifierP>
+                    <keyword class="StringP">
+                      <regexp>public</regexp>
+                    </keyword>
+                  </ModifierP>
+                </elements>
+              </modifiers>
+              <isConstructor class="BooleanP">
+                <value>false</value>
+              </isConstructor>
+              <methodName class="SimpleNameP">
+                <identifier class="StringP">
+                  <regexp>getField2</regexp>
+                </identifier>
+              </methodName>
+              <parameters class="DefaultListP">
+                <elements/>
+              </parameters>
+              <returnType class="PrimitiveTypeP">
+                <typeCode class="StringP">
+                  <regexp>int</regexp>
+                </typeCode>
+              </returnType>
+              <typeParameters class="DefaultListP">
+                <elements/>
+              </typeParameters>
+              <extraArrayDimensions class="IntegerP">
+                <value>0</value>
+              </extraArrayDimensions>
+              <thrownExceptions class="DefaultListP">
+                <elements/>
+              </thrownExceptions>
+              <body class="BlockP">
+                <statements class="DefaultListP">
+                  <elements>
+                    <ReturnStmtP>
+                      <expression class="SimpleNameP">
+                        <identifier class="StringP">
+                          <regexp>field2</regexp>
+                        </identifier>
+                      </expression>
+                    </ReturnStmtP>
+                  </elements>
+                </statements>
+              </body>
+            </MethodDeclP>
+            <MethodDeclP>
+              <modifierFlags class="ModifierFlagsP">
+                <modifiers>1</modifiers>
+              </modifierFlags>
+              <modifiers class="DefaultListP">
+                <elements>
+                  <ModifierP>
+                    <keyword class="StringP">
+                      <regexp>public</regexp>
+                    </keyword>
+                  </ModifierP>
+                </elements>
+              </modifiers>
+              <isConstructor class="BooleanP">
+                <value>false</value>
+              </isConstructor>
+              <methodName class="SimpleNameP">
+                <identifier class="StringP">
+                  <regexp>setField2</regexp>
+                </identifier>
+              </methodName>
+              <parameters class="DefaultListP">
+                <elements>
+                  <SimpleNameP>
+                    <identifier class="StringP">
+                      <regexp>field2</regexp>
+                    </identifier>
+                  </SimpleNameP>
+                </elements>
+              </parameters>
+              <returnType class="PrimitiveTypeP">
+                <typeCode class="StringP">
+                  <regexp>void</regexp>
+                </typeCode>
+              </returnType>
+              <typeParameters class="DefaultListP">
+                <elements/>
+              </typeParameters>
+              <extraArrayDimensions class="IntegerP">
+                <value>0</value>
+              </extraArrayDimensions>
+              <thrownExceptions class="DefaultListP">
+                <elements/>
+              </thrownExceptions>
+              <body class="BlockP">
+                <statements class="DefaultListP">
+                  <elements>
+                    <ExpressionStmtP>
+                      <expression class="AssignmentP">
+                        <assignmentOperator class="AssignmentOperatorP">
+                          <op class="StringP">
+                            <regexp>=</regexp>
+                          </op>
+                        </assignmentOperator>
+                        <leftHandSide class="FieldAccessP">
+                          <expression class="ThisExprP"/>
+                          <fieldName class="SimpleNameP">
+                            <identifier class="StringP">
+                              <regexp>field2</regexp>
+                            </identifier>
+                          </fieldName>
+                        </leftHandSide>
+                        <rightHandSide class="SimpleNameP">
+                          <identifier class="StringP">
+                            <regexp>field2</regexp>
+                          </identifier>
+                        </rightHandSide>
+                      </expression>
+                    </ExpressionStmtP>
+                  </elements>
+                </statements>
+              </body>
+            </MethodDeclP>
+          </elements>
+        </bodyDeclarations>
+        <isInterface class="BooleanP">
+          <value>false</value>
+        </isInterface>
+        <typeParameters class="DefaultListP">
+          <elements/>
+        </typeParameters>
+        <superInterfaceTypes class="DefaultListP">
+          <elements/>
+        </superInterfaceTypes>
+      </TypeDeclP>
+    </elements>
+  </types>
+</CompilationUnitP>

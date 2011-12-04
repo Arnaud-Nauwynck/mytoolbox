@@ -1,0 +1,30 @@
+<MethodDeclarationP>
+      <modifierFlags/>
+      <modifiers class="DefaultListP">
+        <elements>
+          <ModifierP>
+            <keyword>public</keyword>
+          </ModifierP>
+        </elements>
+      </modifiers>
+      <isConstructor>false</isConstructor>
+      <methodName>
+        <identifier>
+          <regexp>get.*</regexp>
+        </identifier>
+      </methodName>
+      <optionalBody>
+        <statements class="DefaultListP">
+          <elements>
+            <ReturnStatementP>
+              <expression class="SimpleNameP">
+                <identifier>
+                  <regexp>.*</regexp>
+                </identifier>
+              </expression>
+            </ReturnStatementP>
+          </elements>
+        </statements>
+      </optionalBody>
+</MethodDeclarationP>
+

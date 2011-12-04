@@ -1,0 +1,57 @@
+ <CompilationUnitP>
+  <types class="DefaultListP">
+    <elements>
+      <TypeDeclP>
+        
+<bodyDeclarations class="MatchOneEltOfListP">
+  <elementPattern class="GroupP">
+    <name>fieldDecl</name>
+	<captured class="FieldDeclP">
+	
+              <modifierFlags class="ModifierFlagsP">
+                <modifiers>2</modifiers>
+              </modifierFlags>
+              <modifiers class="DefaultListP">
+                <elements>
+                  <ModifierP>
+                    <keyword class="StringP">
+                      <value>private</value>
+                    </keyword>
+                  </ModifierP>
+                </elements>
+              </modifiers>
+<baseType class="GroupP">
+	<name>type</name>
+	<captured class="TypeP">
+	</captured>
+<!--
+	<captured class="PrimitiveTypeP">
+                <typeCode class="StringP">
+                  <value>int</value>
+                </typeCode>
+    </captured>
+-->
+</baseType>
+
+              <variableDeclarationFragments class="DefaultListP">
+                <elements>
+                  <VariableDeclarationFragmentP>
+                    <variableName class="SimpleNameP">
+<!--
+                      <identifier class="StringP">
+                        <value>field1</value>
+                      </identifier>
+-->
+                    </variableName>
+                  </VariableDeclarationFragmentP>
+                </elements>
+              </variableDeclarationFragments>
+              
+	</captured>
+  </elementPattern>
+</bodyDeclarations>
+
+      </TypeDeclP>
+    </elements>
+  </types>
+</CompilationUnitP>

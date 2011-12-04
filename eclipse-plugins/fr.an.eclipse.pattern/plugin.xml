@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.5"?>
+<plugin>
+
+   <extension point="org.eclipse.ui.actionSets">
+      <actionSet
+            label="Code Pattern Actions"
+            visible="true"
+            id="fr.an.eclipse.pattern.patternActionSet">
+
+         <menu id="fr.an.eclipse.pattern.patternMenu"
+               label="Code Pattern Menu">
+            <separator name="additions">
+            </separator>
+         </menu>
+         
+      </actionSet>
+   </extension>
+
+   <extension point="org.eclipse.ui.popupMenus">
+      <objectContribution
+            adaptable="true"
+            id="com.google.code.joto.eclipse.ui.IResourceContribution"
+            objectClass="org.eclipse.core.resources.IResource">
+
+  		<menu id="org.eclipse.jdt.ui.refactoring.menu"
+               	label="Code Pattern"
+               	path="edit">
+            <separator name="PatternMenu">
+            </separator>
+        </menu>
+         
+        <action
+               class="fr.an.eclipse.pattern.ui.actions.CodeToPatternAction"
+               id="CodeToPatternAction"
+               label="Code To Pattern"
+               menubarPath="org.eclipse.jdt.ui.refactoring.menu/PatternMenu">
+        </action>
+
+        <action
+               class="fr.an.eclipse.pattern.ui.actions.FindPatternAction"
+               id="FindPatternAction"
+               label="Find Pattern"
+               menubarPath="org.eclipse.jdt.ui.refactoring.menu/PatternMenu">
+        </action>
+		
+		         
+      </objectContribution>
+   </extension>
+   
+   
+<!-- =========================================================================== -->
+<!--  Search Page                                                            -->
+<!-- =========================================================================== -->
+   <extension
+         point="org.eclipse.search.searchPages">
+      <page
+            showScopeSection="true"
+            canSearchEnclosingProjects="true"
+            label="%PatternSearchPage.label"
+            extensions="java:90, jav:90"
+            class="fr.an.eclipse.pattern.internal.ui.search.PatternSearchPage"
+            sizeHint="500,180"
+            id="fr.an.eclipse.pattern.ui.search.PatternSearchPage">
+      </page>
+            <!-- icon="$nl$/icons/full/obj16/jsearch_obj.gif" -->
+   </extension>
+   
+   <extension
+    	id="PatternSearchResultPage"
+        point="org.eclipse.search.searchResultViewPages">
+		<viewPage
+			id="fr.an.eclipse.pattern.ui.PatternSearchResultPage"
+			searchResultClass="fr.an.eclipse.pattern.internal.ui.search.PatternSearchResult"
+			helpContextId="fr.an.eclipse.pattern.ui.pattern_search_result"
+			class="fr.an.eclipse.pattern.internal.ui.search.PatternSearchResultPage">
+		</viewPage>
+   </extension>
+   
+ </plugin>
