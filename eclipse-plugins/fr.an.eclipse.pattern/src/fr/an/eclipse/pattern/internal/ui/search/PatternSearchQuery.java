@@ -24,6 +24,7 @@ import fr.an.eclipse.pattern.internal.ui.search.PatternSearchMatch.PatternSearch
 import fr.an.eclipse.pattern.matcher.ASTNodePatternMatcher;
 import fr.an.eclipse.pattern.matcher.IMatchResult;
 import fr.an.eclipse.pattern.matcher.IMatchResultIterator;
+import fr.an.eclipse.pattern.util.ASTNode2IJavaElementUtil;
 import fr.an.eclipse.pattern.util.JavaASTUtil;
 
 public class PatternSearchQuery implements ISearchQuery {
@@ -100,14 +101,16 @@ public class PatternSearchQuery implements ISearchQuery {
 		final int patternGroupSize = patternGroups.size();
 		// String[] patternGroupNames = new
 
-		Object mainElementOfMatch = null;
-		int mainElementOffset = 0;
-		int mainElementLength = 0;
 		
 		for (IMatchResult matchRes = null; matchIter.hasNext(); ) { // *** The Biggy ***
 			matchRes = matchIter.next();
 
 			PatternSearchCapturedGroupMatch[] capturedGroups = new PatternSearchCapturedGroupMatch[patternGroupSize];
+
+			Object mainElementOfMatch = null;
+			int mainElementOffset = 0;
+			int mainElementLength = 0;
+
 			int groupIndex = 0;
 			for(String groupName : patternGroups.keySet()) {
 				Object groupElement = matchRes.group(groupName);
@@ -119,7 +122,7 @@ public class PatternSearchQuery implements ISearchQuery {
 					length = groupASTNode.getLength();
 					
 					if (mainElementOfMatch == null) {
-						mainElementOfMatch = icu; // ?? TOADD..
+						mainElementOfMatch = ASTNode2IJavaElementUtil.getEnclosingJavaElementDeclaration(groupASTNode);
 						mainElementOffset = offset;
 						mainElementLength = length;
 					}

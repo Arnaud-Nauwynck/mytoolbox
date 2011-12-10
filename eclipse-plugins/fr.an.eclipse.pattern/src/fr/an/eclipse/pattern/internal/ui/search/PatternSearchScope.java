@@ -8,11 +8,9 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IResourceProxy;
 import org.eclipse.core.resources.ResourcesPlugin;
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -20,11 +18,9 @@ import org.eclipse.core.runtime.MultiStatus;
 import org.eclipse.core.runtime.content.IContentType;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IJavaElement;
-import org.eclipse.jdt.core.IJavaModel;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.JavaModelException;
-import org.eclipse.search.core.text.TextSearchScope;
 import org.eclipse.search.internal.core.text.PatternConstructor;
 import org.eclipse.search.internal.ui.WorkingSetComparator;
 import org.eclipse.search.internal.ui.text.BasicElementLabels;
@@ -33,6 +29,9 @@ import org.eclipse.ui.IWorkingSet;
 
 import fr.an.eclipse.pattern.PatternUIPlugin;
 import fr.an.eclipse.pattern.util.CompilationUnitScanner;
+import fr.an.eclipse.pattern.util.ICompilationUnitFilter;
+import fr.an.eclipse.pattern.util.IncludeExcludePatternList;
+import fr.an.eclipse.pattern.util.JavaElementUtil;
 
 /**
  * A text search scope used by the file search dialog. Additionally to roots it allows to define file name
@@ -131,11 +130,11 @@ public final class PatternSearchScope { // extends TextSearchScope
 	private final String fDescription;
 	private final IJavaElement[] fRootElements;
 	private final String[] fFileNamePatterns;
-	private final Matcher fPositiveFileNameMatcher;
-	private final Matcher fNegativeFileNameMatcher;
+	private final IncludeExcludePatternList fIncludeExcludeFileNameMatcher;
 
 	private boolean fVisitDerived;
 	private IWorkingSet[] fWorkingSets;
+
 
 	private PatternSearchScope(String description, IJavaElement[] resources, 
 			IWorkingSet[] workingSets, String[] fileNamePatterns, boolean visitDerived) {
@@ -144,8 +143,7 @@ public final class PatternSearchScope { // extends TextSearchScope
 		fFileNamePatterns= fileNamePatterns;
 		fVisitDerived= visitDerived;
 		fWorkingSets= workingSets;
-		fPositiveFileNameMatcher= createMatcher(fileNamePatterns, false);
-		fNegativeFileNameMatcher= createMatcher(fileNamePatterns, true);
+		fIncludeExcludeFileNameMatcher= new IncludeExcludePatternList(fFileNamePatterns);
 	}
 
 	/**
@@ -167,6 +165,11 @@ public final class PatternSearchScope { // extends TextSearchScope
 		return fFileNamePatterns;
 	}
 
+	public IncludeExcludePatternList getIncludeExcludeFileNameMatcher() {
+		return fIncludeExcludeFileNameMatcher;
+	}
+
+	
 	/**
 	 * Returns the working-sets that were used to  configure this scope or <code>null</code>
 	 * if the scope was not created off working sets.
@@ -224,53 +227,24 @@ public final class PatternSearchScope { // extends TextSearchScope
 		return fRootElements;
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.search.core.text.FileSearchScope#contains(org.eclipse.core.resources.IResourceProxy)
-	 */
-	public boolean contains(IResourceProxy proxy) {
-		if (!fVisitDerived && proxy.isDerived()) {
-			return false; // all resources in a derived folder are considered to be derived, see bug 103576
-		}
-
-		if (proxy.getType() == IResource.FILE) {
-			return matchesFileName(proxy.getName());
-		}
-		return true;
-	}
-
-	private boolean matchesFileName(String fileName) {
-		if (fPositiveFileNameMatcher != null && !fPositiveFileNameMatcher.reset(fileName).matches()) {
-			return false;
-		}
-		if (fNegativeFileNameMatcher != null && fNegativeFileNameMatcher.reset(fileName).matches()) {
-			return false;
-		}
-		return true;
-	}
-
-	private Matcher createMatcher(String[] fileNamePatterns, boolean negativeMatcher) {
-		if (fileNamePatterns == null || fileNamePatterns.length == 0) {
-			return null;
-		}
-		ArrayList patterns= new ArrayList();
-		for (int i= 0; i < fileNamePatterns.length; i++) {
-			String pattern= fFileNamePatterns[i];
-			if (negativeMatcher == pattern.startsWith(FileTypeEditor.FILE_PATTERN_NEGATOR)) {
-				if (negativeMatcher) {
-					pattern= pattern.substring(FileTypeEditor.FILE_PATTERN_NEGATOR.length()).trim();
-				}
-				if (pattern.length() > 0) {
-					patterns.add(pattern);
-				}
-			}
-		}
-		if (!patterns.isEmpty()) {
-			String[] patternArray= (String[]) patterns.toArray(new String[patterns.size()]);
-			Pattern pattern= PatternConstructor.createPattern(patternArray, IS_CASE_SENSITIVE_FILESYSTEM);
-			return pattern.matcher(""); //$NON-NLS-1$
-		}
-		return null;
-	}
+//	/* (non-Javadoc)
+//	 * @see org.eclipse.search.core.text.FileSearchScope#contains(org.eclipse.core.resources.IResourceProxy)
+//	 */
+//	public boolean contains(IResourceProxy proxy) {
+//		if (!fVisitDerived && proxy.isDerived()) {
+//			return false; // all resources in a derived folder are considered to be derived, see bug 103576
+//		}
+//
+//		if (proxy.getType() == IResource.FILE) {
+//			return matchesFileName(proxy.getName());
+//		}
+//		return true;
+//	}
+//
+//	private boolean matchesFileName(String fileName) {
+//		boolean res = fIncludeExcludeFileNameMatcher.accept(fileName); // TODO check ignore ".java" extension...
+//		return res;
+//	}
 
 	private static IJavaElement[] removeRedundantEntries(IJavaElement[] elements, boolean includeDerived) {
 		ArrayList res= new ArrayList();
@@ -330,9 +304,13 @@ public final class PatternSearchScope { // extends TextSearchScope
 	public ICompilationUnit[] evaluateCompilationUnitsInScope(IProgressMonitor monitor, MultiStatus status) {
 		CompilationUnitScanner cuScanner = new CompilationUnitScanner();
 
-		// TOADD configure filter patterns... 
-		
-		
+		// configure filter patterns for comilation units
+		ICompilationUnitFilter.DefaultIncludeExcludeNameCompilationUnitFilter ucFilter = 
+				new ICompilationUnitFilter.DefaultIncludeExcludeNameCompilationUnitFilter(
+						fIncludeExcludeFileNameMatcher);
+		cuScanner.setFilter(ucFilter);
+
+		// recursive scan from rootElements (project->packages->files...)
 		for(IJavaElement root : fRootElements) {
 			if (root == null) continue;
 			try {
@@ -347,11 +325,10 @@ public final class PatternSearchScope { // extends TextSearchScope
 					}
 				}
 			
-				if (parentCu != null) {
-					cuScanner.recursiveScanCompilationUnits(monitor, parentCu);
-				} else {
-					cuScanner.recursiveScanCompilationUnits(monitor, root);
-				}
+				IJavaElement searchInJavaElement = (parentCu != null)? parentCu : root; 
+								
+				cuScanner.recursiveScanCompilationUnits(monitor, searchInJavaElement);
+
 			} catch(JavaModelException ex) {
 				status.add(PatternUIPlugin.newStatusError("Failed to scan compilation units for " + root, ex));
 			}
@@ -359,5 +336,5 @@ public final class PatternSearchScope { // extends TextSearchScope
 		Set<ICompilationUnit> tmpres = cuScanner.getResultCompilationUnits();
 		return tmpres.toArray(new ICompilationUnit[tmpres.size()]);
 	}
-
+	
 }

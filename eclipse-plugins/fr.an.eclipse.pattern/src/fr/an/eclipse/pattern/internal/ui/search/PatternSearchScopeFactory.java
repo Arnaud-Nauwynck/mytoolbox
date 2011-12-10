@@ -45,7 +45,7 @@ public class PatternSearchScopeFactory {
 
 	private static PatternSearchScopeFactory fgInstance = new PatternSearchScopeFactory();
 
-	private static String[] DEFAULT_FILENAME_PATTERNS = new String[] { "*.java" };
+	private static String[] DEFAULT_FILENAME_PATTERNS = new String[] { ".*\\.java" };
 	
 	private final PatternSearchScope EMPTY_SCOPE= 
 			PatternSearchScope.newSearchScope(new IJavaElement[] {}, DEFAULT_FILENAME_PATTERNS, false);

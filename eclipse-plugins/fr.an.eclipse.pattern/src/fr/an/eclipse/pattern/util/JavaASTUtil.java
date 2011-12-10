@@ -58,7 +58,58 @@ public class JavaASTUtil {
 		return unit;
 	}
 	
+	/**
+	 * @param node
+	 * @return inner-most enclosing ASTNode declaration... 
+	 *   one of TypeDeclaration, MethodDeclaration, FieldDeclaration, CompilationUnit
+	 */
+	public static ASTNode getEnclosingDeclarationNode(ASTNode node) {
+		ASTNode res = null;
+		for(ASTNode p = node; p != null; p = p.getParent()) {
+			if (p instanceof TypeDeclaration) {
+				res = p;
+				break;
+			} else if (p instanceof MethodDeclaration) {
+				res = p;
+				break;
+			} else if (p instanceof FieldDeclaration) {
+				res = p;
+				break;
+			} else if (p instanceof CompilationUnit) {
+				res = p;
+				break;
+			}
+		}
+		return res;
+	}
 
+	// return the method node that is an ancestor of the given node, or null if
+	// not found
+	public static ASTNode getMethodAncestor(ASTNode node) {
+		return getAncestorByType(node, ASTNode.METHOD_DECLARATION);
+	}
+
+	// return the method node that is an ancestor of the given node, or null if
+	// not found
+	public static ASTNode getTypeAncestor(ASTNode node) {
+		return getAncestorByType(node, ASTNode.TYPE_DECLARATION);
+	}
+
+	// returns an ancestor node of the given type, or null if not found
+	public static ASTNode getAncestorByType(ASTNode node, int type) {
+		if (node == null)
+			return null;
+		ASTNode res = null;
+		for(ASTNode p = node; p != null; p = p.getParent()) {
+			if (p.getNodeType() == type) {
+				res = p;
+				break;
+			}
+		}
+		return res;
+	}
+
+	
 	public static MethodDeclaration getParentMethodDeclaration(ASTNode node) {
 		MethodDeclaration res = null;
 		for(ASTNode p = node; p != null; p = p.getParent()) {

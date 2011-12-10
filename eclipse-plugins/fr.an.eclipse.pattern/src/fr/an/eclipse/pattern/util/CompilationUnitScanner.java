@@ -90,7 +90,7 @@ public class CompilationUnitScanner {
 		switch (elt.getElementType()) {
 		case IJavaElement.COMPILATION_UNIT: {
 			ICompilationUnit cu = (ICompilationUnit) elt;
-			if (filter == null || filter.visitSwitchTree(cu)) {
+			if (filter == null || filter.accept(cu)) {
 				countCompilationUnit++;
 				resultCompilationUnits.add(cu);
 			}
