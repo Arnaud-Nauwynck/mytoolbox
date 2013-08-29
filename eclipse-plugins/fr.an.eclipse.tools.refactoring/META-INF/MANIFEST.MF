@@ -1,0 +1,19 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Refactoring
+Bundle-SymbolicName: fr.an.eclipse.tools.refactoring; singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-Activator: fr.an.eclipse.tools.refactoring.Activator
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ org.eclipse.core.resources,
+ org.eclipse.jdt,
+ org.eclipse.jdt.core,
+ org.eclipse.core.filebuffers,
+ org.eclipse.core.filesystem,
+ org.eclipse.core.resources,
+ org.eclipse.jdt.ui,
+ org.eclipse.jface.text,
+ fr.an.eclipse.pattern
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-1.7
