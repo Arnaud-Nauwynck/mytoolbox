@@ -614,17 +614,17 @@ public class StdStatementASTPatterns {
 		/**
 		 * The expression
 		 */
-		private IPattern<Expression> expression = null;
+		private IPattern<Expression> expression;
 
 		/**
 		 * The then statement
 		 */
-		private IPattern<Statement>thenStatement = null;
+		private IPattern<Statement> thenStatement;
 
 		/**
 		 * The else statement
 		 */
-		private IPattern<Statement>optionalElseStatement = null;
+		private IPattern<Statement> optionalElseStatement;
 
 		// ------------------------------------------------------------------------
 		
