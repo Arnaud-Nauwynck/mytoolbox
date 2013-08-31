@@ -1,0 +1,3834 @@
+diff -r fcd768844b99 src/share/classes/com/sun/source/tree/Tree.java
+--- a/src/share/classes/com/sun/source/tree/Tree.java	Thu Aug 29 16:34:12 2013 -0700
++++ b/src/share/classes/com/sun/source/tree/Tree.java	Sun Sep 01 01:31:04 2013 +0200
+@@ -25,6 +25,12 @@
+ 
+ package com.sun.source.tree;
+ 
++import java.util.Arrays;
++import java.util.Collections;
++import java.util.HashSet;
++import java.util.List;
++import java.util.Set;
++
+ /**
+  * Common interface for all nodes in an abstract syntax tree.
+  *
+@@ -48,570 +54,623 @@
+     @jdk.Supported
+     public enum Kind {
+ 
+-        ANNOTATED_TYPE(AnnotatedTypeTree.class),
++        /**
++         * Used for instance of {@link ExtendedASTAnnotationTree}
++         * representing AST-level tree annotation "@@"
++        */
++        AST_ANNOTATION(null, "ASTAnnotation"), // ExtendedASTAnnotationTree.class ... break API compatility with visitor ...
++
++        ANNOTATED_TYPE(AnnotatedTypeTree.class, "AnnotatedType", "AtType"),
+ 
+         /**
+          * Used for instances of {@link AnnotationTree}
+          * representing declaration annotations.
+          */
+-        ANNOTATION(AnnotationTree.class),
++        ANNOTATION(AnnotationTree.class, "Annotation", "At"),
+ 
+         /**
+          * Used for instances of {@link AnnotationTree}
+          * representing type annotations.
+          */
+-        TYPE_ANNOTATION(AnnotationTree.class),
++        TYPE_ANNOTATION(AnnotationTree.class, "TypeAnnotation", "Annotation", "At"),
+ 
+         /**
+          * Used for instances of {@link ArrayAccessTree}.
+          */
+-        ARRAY_ACCESS(ArrayAccessTree.class),
++        ARRAY_ACCESS(ArrayAccessTree.class, "ArrayAccess"),
+ 
+         /**
+          * Used for instances of {@link ArrayTypeTree}.
+          */
+-        ARRAY_TYPE(ArrayTypeTree.class),
++        ARRAY_TYPE(ArrayTypeTree.class, "ArrayType"),
+ 
+         /**
+          * Used for instances of {@link AssertTree}.
+          */
+-        ASSERT(AssertTree.class),
++        ASSERT(AssertTree.class, "Assert", "assert"),
+ 
+         /**
+          * Used for instances of {@link AssignmentTree}.
+          */
+-        ASSIGNMENT(AssignmentTree.class),
++        ASSIGNMENT(AssignmentTree.class, "Assign", "Eq", "="),
+ 
+         /**
+          * Used for instances of {@link BlockTree}.
+          */
+-        BLOCK(BlockTree.class),
++        BLOCK(BlockTree.class, "Block", "{}"),
+ 
+         /**
+          * Used for instances of {@link BreakTree}.
+          */
+-        BREAK(BreakTree.class),
++        BREAK(BreakTree.class, "Break", "break"),
+ 
+         /**
+          * Used for instances of {@link CaseTree}.
+          */
+-        CASE(CaseTree.class),
++        CASE(CaseTree.class, "Case", "case"),
+ 
+         /**
+          * Used for instances of {@link CatchTree}.
+          */
+-        CATCH(CatchTree.class),
++        CATCH(CatchTree.class, "Catch", "catch"),
+ 
+         /**
+          * Used for instances of {@link ClassTree} representing classes.
+          */
+-        CLASS(ClassTree.class),
++        CLASS(ClassTree.class, "Class", "class"),
+ 
+         /**
+          * Used for instances of {@link CompilationUnitTree}.
+          */
+-        COMPILATION_UNIT(CompilationUnitTree.class),
++        COMPILATION_UNIT(CompilationUnitTree.class, "CompilationUnit", "cu"),
+ 
+         /**
+          * Used for instances of {@link ConditionalExpressionTree}.
+          */
+-        CONDITIONAL_EXPRESSION(ConditionalExpressionTree.class),
++        CONDITIONAL_EXPRESSION(ConditionalExpressionTree.class, "ConditionalExpression", "?"),
+ 
+         /**
+          * Used for instances of {@link ContinueTree}.
+          */
+-        CONTINUE(ContinueTree.class),
++        CONTINUE(ContinueTree.class, "Continue", "continue"),
+ 
+         /**
+          * Used for instances of {@link DoWhileLoopTree}.
+          */
+-        DO_WHILE_LOOP(DoWhileLoopTree.class),
++        DO_WHILE_LOOP(DoWhileLoopTree.class, "DoWhile", "do"),
+ 
+         /**
+          * Used for instances of {@link EnhancedForLoopTree}.
+          */
+-        ENHANCED_FOR_LOOP(EnhancedForLoopTree.class),
++        ENHANCED_FOR_LOOP(EnhancedForLoopTree.class, "EnhancedForLoop", "for"),
+ 
+         /**
+          * Used for instances of {@link ExpressionStatementTree}.
+          */
+-        EXPRESSION_STATEMENT(ExpressionStatementTree.class),
++        EXPRESSION_STATEMENT(ExpressionStatementTree.class, "ExpressionStatement", "expr;", "e;"),
+ 
+         /**
+          * Used for instances of {@link MemberSelectTree}.
+          */
+-        MEMBER_SELECT(MemberSelectTree.class),
++        MEMBER_SELECT(MemberSelectTree.class, "MemberSelect", "."),
+ 
+         /**
+          * Used for instances of {@link MemberReferenceTree}.
+          */
+-        MEMBER_REFERENCE(MemberReferenceTree.class),
++        MEMBER_REFERENCE(MemberReferenceTree.class, "MemberReference", "#"),
+ 
+         /**
+          * Used for instances of {@link ForLoopTree}.
+          */
+-        FOR_LOOP(ForLoopTree.class),
++        FOR_LOOP(ForLoopTree.class, "ForLoop", "for"),
+ 
+         /**
+          * Used for instances of {@link IdentifierTree}.
+          */
+-        IDENTIFIER(IdentifierTree.class),
++        IDENTIFIER(IdentifierTree.class, "Identifier", "id", "name"),
+ 
+         /**
+          * Used for instances of {@link IfTree}.
+          */
+-        IF(IfTree.class),
++        IF(IfTree.class, "If", "if"),
+ 
+         /**
+          * Used for instances of {@link ImportTree}.
+          */
+-        IMPORT(ImportTree.class),
++        IMPORT(ImportTree.class, "Import", "import"),
+ 
+         /**
+          * Used for instances of {@link InstanceOfTree}.
+          */
+-        INSTANCE_OF(InstanceOfTree.class),
++        INSTANCE_OF(InstanceOfTree.class, "InstanceOf", "instanceof"),
+ 
+         /**
+          * Used for instances of {@link LabeledStatementTree}.
+          */
+-        LABELED_STATEMENT(LabeledStatementTree.class),
++        LABELED_STATEMENT(LabeledStatementTree.class, "LabeledStatement", "label"),
+ 
+         /**
+          * Used for instances of {@link MethodTree}.
+          */
+-        METHOD(MethodTree.class),
++        METHOD(MethodTree.class, "Method", "method"),
+ 
+         /**
+          * Used for instances of {@link MethodInvocationTree}.
+          */
+-        METHOD_INVOCATION(MethodInvocationTree.class),
++        METHOD_INVOCATION(MethodInvocationTree.class, "MethodInvocation", "invoke", "call"),
+ 
+         /**
+          * Used for instances of {@link ModifiersTree}.
+          */
+-        MODIFIERS(ModifiersTree.class),
++        MODIFIERS(ModifiersTree.class, "Modifiers"),
+ 
+         /**
+          * Used for instances of {@link NewArrayTree}.
+          */
+-        NEW_ARRAY(NewArrayTree.class),
++        NEW_ARRAY(NewArrayTree.class, "NewArray", "new"),
+ 
+         /**
+          * Used for instances of {@link NewClassTree}.
+          */
+-        NEW_CLASS(NewClassTree.class),
++        NEW_CLASS(NewClassTree.class, "NewClass", "new"),
+ 
+         /**
+          * Used for instances of {@link LambdaExpressionTree}.
+          */
+-        LAMBDA_EXPRESSION(LambdaExpressionTree.class),
++        LAMBDA_EXPRESSION(LambdaExpressionTree.class, "Lambda", "lambda"),
+ 
+         /**
+          * Used for instances of {@link ParenthesizedTree}.
+          */
+-        PARENTHESIZED(ParenthesizedTree.class),
++        PARENTHESIZED(ParenthesizedTree.class, "Parenthesized"),  // should not use prefix with "(e)" as it might confuse the parser ?
+ 
+         /**
+          * Used for instances of {@link PrimitiveTypeTree}.
+          */
+-        PRIMITIVE_TYPE(PrimitiveTypeTree.class),
++        PRIMITIVE_TYPE(PrimitiveTypeTree.class, "PrimitiveType", "type"),
+ 
+         /**
+          * Used for instances of {@link ReturnTree}.
+          */
+-        RETURN(ReturnTree.class),
++        RETURN(ReturnTree.class, "Return", "return"),
+ 
+         /**
+          * Used for instances of {@link EmptyStatementTree}.
+          */
+-        EMPTY_STATEMENT(EmptyStatementTree.class),
++        EMPTY_STATEMENT(EmptyStatementTree.class, "EmptyStatement", "empty"),
+ 
+         /**
+          * Used for instances of {@link SwitchTree}.
+          */
+-        SWITCH(SwitchTree.class),
++        SWITCH(SwitchTree.class, "Switch", "switch"),
+ 
+         /**
+          * Used for instances of {@link SynchronizedTree}.
+          */
+-        SYNCHRONIZED(SynchronizedTree.class),
++        SYNCHRONIZED(SynchronizedTree.class, "Synchronized", "synchronized"),
+ 
+         /**
+          * Used for instances of {@link ThrowTree}.
+          */
+-        THROW(ThrowTree.class),
++        THROW(ThrowTree.class, "Throw", "throw"),
+ 
+         /**
+          * Used for instances of {@link TryTree}.
+          */
+-        TRY(TryTree.class),
++        TRY(TryTree.class, "Try", "try"),
+ 
+         /**
+          * Used for instances of {@link ParameterizedTypeTree}.
+          */
+-        PARAMETERIZED_TYPE(ParameterizedTypeTree.class),
++        PARAMETERIZED_TYPE(ParameterizedTypeTree.class, "ParameterizedType", "type<>", "type"),
+ 
+         /**
+          * Used for instances of {@link UnionTypeTree}.
+          */
+-        UNION_TYPE(UnionTypeTree.class),
++        UNION_TYPE(UnionTypeTree.class, "UnionType", "union", "|", "uniontype", "type"),
+ 
+         /**
+          * Used for instances of {@link IntersectionTypeTree}.
+          */
+-        INTERSECTION_TYPE(IntersectionTypeTree.class),
++        INTERSECTION_TYPE(IntersectionTypeTree.class, "IntersectionType", "intersectiontype", "type"),
+ 
+         /**
+          * Used for instances of {@link TypeCastTree}.
+          */
+-        TYPE_CAST(TypeCastTree.class),
++        TYPE_CAST(TypeCastTree.class, "TypeCast", "cast"), // should not use prefix with "()" as it might confuse the parser ?
+ 
+         /**
+          * Used for instances of {@link TypeParameterTree}.
+          */
+-        TYPE_PARAMETER(TypeParameterTree.class),
++        TYPE_PARAMETER(TypeParameterTree.class, "TypeParameter", "type"),
+ 
+         /**
+          * Used for instances of {@link VariableTree}.
+          */
+-        VARIABLE(VariableTree.class),
++        VARIABLE(VariableTree.class, "Variable", "var", "vardecl"),
+ 
+         /**
+          * Used for instances of {@link WhileLoopTree}.
+          */
+-        WHILE_LOOP(WhileLoopTree.class),
++        WHILE_LOOP(WhileLoopTree.class, "WhileLoop", "while"),
+ 
+         /**
+          * Used for instances of {@link UnaryTree} representing postfix
+          * increment operator {@code ++}.
+          */
+-        POSTFIX_INCREMENT(UnaryTree.class),
++        POSTFIX_INCREMENT(UnaryTree.class, "PostfixIncrement", "e++", "++"),
+ 
+         /**
+          * Used for instances of {@link UnaryTree} representing postfix
+          * decrement operator {@code --}.
+          */
+-        POSTFIX_DECREMENT(UnaryTree.class),
++        POSTFIX_DECREMENT(UnaryTree.class, "PostfixDecrement", "e--", "--"),
+ 
+         /**
+          * Used for instances of {@link UnaryTree} representing prefix
+          * increment operator {@code ++}.
+          */
+-        PREFIX_INCREMENT(UnaryTree.class),
++        PREFIX_INCREMENT(UnaryTree.class, "PrefixIncrement", "++e", "++"),
+ 
+         /**
+          * Used for instances of {@link UnaryTree} representing prefix
+          * decrement operator {@code --}.
+          */
+-        PREFIX_DECREMENT(UnaryTree.class),
++        PREFIX_DECREMENT(UnaryTree.class, "PrefixDecrement", "--e", "--"),
+ 
+         /**
+          * Used for instances of {@link UnaryTree} representing unary plus
+          * operator {@code +}.
+          */
+-        UNARY_PLUS(UnaryTree.class),
++        UNARY_PLUS(UnaryTree.class, "UnaryPlus", "+e", "+"),
+ 
+         /**
+          * Used for instances of {@link UnaryTree} representing unary minus
+          * operator {@code -}.
+          */
+-        UNARY_MINUS(UnaryTree.class),
++        UNARY_MINUS(UnaryTree.class, "UnaryMinus", "-e", "-"),
+ 
+         /**
+          * Used for instances of {@link UnaryTree} representing bitwise
+          * complement operator {@code ~}.
+          */
+-        BITWISE_COMPLEMENT(UnaryTree.class),
++        BITWISE_COMPLEMENT(UnaryTree.class, "BitwiseComplement", "~"),
+ 
+         /**
+          * Used for instances of {@link UnaryTree} representing logical
+          * complement operator {@code !}.
+          */
+-        LOGICAL_COMPLEMENT(UnaryTree.class),
++        LOGICAL_COMPLEMENT(UnaryTree.class, "LogicalComlement", "!"),
+ 
+         /**
+          * Used for instances of {@link BinaryTree} representing
+          * multiplication {@code *}.
+          */
+-        MULTIPLY(BinaryTree.class),
++        MULTIPLY(BinaryTree.class, "Multiply", "mult", "*"),
+ 
+         /**
+          * Used for instances of {@link BinaryTree} representing
+          * division {@code /}.
+          */
+-        DIVIDE(BinaryTree.class),
++        DIVIDE(BinaryTree.class, "Divide", "div", "/"),
+ 
+         /**
+          * Used for instances of {@link BinaryTree} representing
+          * remainder {@code %}.
+          */
+-        REMAINDER(BinaryTree.class),
++        REMAINDER(BinaryTree.class, "Remainder", "rem", "%"),
+ 
+         /**
+          * Used for instances of {@link BinaryTree} representing
+          * addition or string concatenation {@code +}.
+          */
+-        PLUS(BinaryTree.class),
++        PLUS(BinaryTree.class, "BinaryPlus", "e+e", "+"),
+ 
+         /**
+          * Used for instances of {@link BinaryTree} representing
+          * subtraction {@code -}.
+          */
+-        MINUS(BinaryTree.class),
++        MINUS(BinaryTree.class, "BinaryMinus", "e-e", "-"),
+ 
+         /**
+          * Used for instances of {@link BinaryTree} representing
+          * left shift {@code <<}.
+          */
+-        LEFT_SHIFT(BinaryTree.class),
++        LEFT_SHIFT(BinaryTree.class, "LeftShift", "<<"),
+ 
+         /**
+          * Used for instances of {@link BinaryTree} representing
+          * right shift {@code >>}.
+          */
+-        RIGHT_SHIFT(BinaryTree.class),
++        RIGHT_SHIFT(BinaryTree.class, "RightShift", ">>"),
+ 
+         /**
+          * Used for instances of {@link BinaryTree} representing
+          * unsigned right shift {@code >>>}.
+          */
+-        UNSIGNED_RIGHT_SHIFT(BinaryTree.class),
++        UNSIGNED_RIGHT_SHIFT(BinaryTree.class, "UnsignedRightShift", ">>>"),
+ 
+         /**
+          * Used for instances of {@link BinaryTree} representing
+          * less-than {@code <}.
+          */
+-        LESS_THAN(BinaryTree.class),
++        LESS_THAN(BinaryTree.class, "LessThan", "lt", "<"),
+ 
+         /**
+          * Used for instances of {@link BinaryTree} representing
+          * greater-than {@code >}.
+          */
+-        GREATER_THAN(BinaryTree.class),
++        GREATER_THAN(BinaryTree.class, "GreaterThan", "gt", ">"),
+ 
+         /**
+          * Used for instances of {@link BinaryTree} representing
+          * less-than-equal {@code <=}.
+          */
+-        LESS_THAN_EQUAL(BinaryTree.class),
++        LESS_THAN_EQUAL(BinaryTree.class, "LessThanEqual", "le", "<="),
+ 
+         /**
+          * Used for instances of {@link BinaryTree} representing
+          * greater-than-equal {@code >=}.
+          */
+-        GREATER_THAN_EQUAL(BinaryTree.class),
++        GREATER_THAN_EQUAL(BinaryTree.class, "GreaterThanEqual", "ge", ">="),
+ 
+         /**
+          * Used for instances of {@link BinaryTree} representing
+          * equal-to {@code ==}.
+          */
+-        EQUAL_TO(BinaryTree.class),
++        EQUAL_TO(BinaryTree.class, "Equals", "equals", "=="),
+ 
+         /**
+          * Used for instances of {@link BinaryTree} representing
+          * not-equal-to {@code !=}.
+          */
+-        NOT_EQUAL_TO(BinaryTree.class),
++        NOT_EQUAL_TO(BinaryTree.class, "NotEquals", "notequals", "!="),
+ 
+         /**
+          * Used for instances of {@link BinaryTree} representing
+          * bitwise and logical "and" {@code &}.
+          */
+-        AND(BinaryTree.class),
++        AND(BinaryTree.class, "And", "and", "&"),
+ 
+         /**
+          * Used for instances of {@link BinaryTree} representing
+          * bitwise and logical "xor" {@code ^}.
+          */
+-        XOR(BinaryTree.class),
++        XOR(BinaryTree.class, "Xor", "xor", "^"),
+ 
+         /**
+          * Used for instances of {@link BinaryTree} representing
+          * bitwise and logical "or" {@code |}.
+          */
+-        OR(BinaryTree.class),
++        OR(BinaryTree.class, "Or", "or", "|"),
+ 
+         /**
+          * Used for instances of {@link BinaryTree} representing
+          * conditional-and {@code &&}.
+          */
+-        CONDITIONAL_AND(BinaryTree.class),
++        CONDITIONAL_AND(BinaryTree.class, "ConditionalAnd", "&&"),
+ 
+         /**
+          * Used for instances of {@link BinaryTree} representing
+          * conditional-or {@code ||}.
+          */
+-        CONDITIONAL_OR(BinaryTree.class),
++        CONDITIONAL_OR(BinaryTree.class, "ConditionalOr", "||"),
+ 
+         /**
+          * Used for instances of {@link CompoundAssignmentTree} representing
+          * multiplication assignment {@code *=}.
+          */
+-        MULTIPLY_ASSIGNMENT(CompoundAssignmentTree.class),
++        MULTIPLY_ASSIGNMENT(CompoundAssignmentTree.class, "MultiplyAssignment", "*="),
+ 
+         /**
+          * Used for instances of {@link CompoundAssignmentTree} representing
+          * division assignment {@code /=}.
+          */
+-        DIVIDE_ASSIGNMENT(CompoundAssignmentTree.class),
++        DIVIDE_ASSIGNMENT(CompoundAssignmentTree.class, "DivideAssignment", "/="),
+ 
+         /**
+          * Used for instances of {@link CompoundAssignmentTree} representing
+          * remainder assignment {@code %=}.
+          */
+-        REMAINDER_ASSIGNMENT(CompoundAssignmentTree.class),
++        REMAINDER_ASSIGNMENT(CompoundAssignmentTree.class, "RemainderAssignment", "%="),
+ 
+         /**
+          * Used for instances of {@link CompoundAssignmentTree} representing
+          * addition or string concatenation assignment {@code +=}.
+          */
+-        PLUS_ASSIGNMENT(CompoundAssignmentTree.class),
++        PLUS_ASSIGNMENT(CompoundAssignmentTree.class, "PLusAssignment", "+="),
+ 
+         /**
+          * Used for instances of {@link CompoundAssignmentTree} representing
+          * subtraction assignment {@code -=}.
+          */
+-        MINUS_ASSIGNMENT(CompoundAssignmentTree.class),
++        MINUS_ASSIGNMENT(CompoundAssignmentTree.class, "MinusAssignment", "-="),
+ 
+         /**
+          * Used for instances of {@link CompoundAssignmentTree} representing
+          * left shift assignment {@code <<=}.
+          */
+-        LEFT_SHIFT_ASSIGNMENT(CompoundAssignmentTree.class),
++        LEFT_SHIFT_ASSIGNMENT(CompoundAssignmentTree.class, "LeftShiftAssignment", "<<="),
+ 
+         /**
+          * Used for instances of {@link CompoundAssignmentTree} representing
+          * right shift assignment {@code >>=}.
+          */
+-        RIGHT_SHIFT_ASSIGNMENT(CompoundAssignmentTree.class),
++        RIGHT_SHIFT_ASSIGNMENT(CompoundAssignmentTree.class, "RightShiftAssignment", ">>="),
+ 
+         /**
+          * Used for instances of {@link CompoundAssignmentTree} representing
+          * unsigned right shift assignment {@code >>>=}.
+          */
+-        UNSIGNED_RIGHT_SHIFT_ASSIGNMENT(CompoundAssignmentTree.class),
++        UNSIGNED_RIGHT_SHIFT_ASSIGNMENT(CompoundAssignmentTree.class, "UnsignedRightShiftAssignment", ">>>="),
+ 
+         /**
+          * Used for instances of {@link CompoundAssignmentTree} representing
+          * bitwise and logical "and" assignment {@code &=}.
+          */
+-        AND_ASSIGNMENT(CompoundAssignmentTree.class),
++        AND_ASSIGNMENT(CompoundAssignmentTree.class, "AndAssignment", "&="),
+ 
+         /**
+          * Used for instances of {@link CompoundAssignmentTree} representing
+          * bitwise and logical "xor" assignment {@code ^=}.
+          */
+-        XOR_ASSIGNMENT(CompoundAssignmentTree.class),
++        XOR_ASSIGNMENT(CompoundAssignmentTree.class, "XorAssignment", "^="),
+ 
+         /**
+          * Used for instances of {@link CompoundAssignmentTree} representing
+          * bitwise and logical "or" assignment {@code |=}.
+          */
+-        OR_ASSIGNMENT(CompoundAssignmentTree.class),
++        OR_ASSIGNMENT(CompoundAssignmentTree.class, "OrAssignment", "|="),
+ 
+         /**
+          * Used for instances of {@link LiteralTree} representing
+          * an integral literal expression of type {@code int}.
+          */
+-        INT_LITERAL(LiteralTree.class),
++        INT_LITERAL(LiteralTree.class, "IntLiteral", "int", "literal"),
+ 
+         /**
+          * Used for instances of {@link LiteralTree} representing
+          * an integral literal expression of type {@code long}.
+          */
+-        LONG_LITERAL(LiteralTree.class),
++        LONG_LITERAL(LiteralTree.class, "LongLiteral", "long", "literal"),
+ 
+         /**
+          * Used for instances of {@link LiteralTree} representing
+          * a floating-point literal expression of type {@code float}.
+          */
+-        FLOAT_LITERAL(LiteralTree.class),
++        FLOAT_LITERAL(LiteralTree.class, "FloatLiteral", "float", "literal"),
+ 
+         /**
+          * Used for instances of {@link LiteralTree} representing
+          * a floating-point literal expression of type {@code double}.
+          */
+-        DOUBLE_LITERAL(LiteralTree.class),
++        DOUBLE_LITERAL(LiteralTree.class, "DoubleLiteral", "double", "literal"),
+ 
+         /**
+          * Used for instances of {@link LiteralTree} representing
+          * a boolean literal expression of type {@code boolean}.
+          */
+-        BOOLEAN_LITERAL(LiteralTree.class),
++        BOOLEAN_LITERAL(LiteralTree.class, "BooleanLiteral", "boolean", "bool", "literal"),
+ 
+         /**
+          * Used for instances of {@link LiteralTree} representing
+          * a character literal expression of type {@code char}.
+          */
+-        CHAR_LITERAL(LiteralTree.class),
++        CHAR_LITERAL(LiteralTree.class, "CharLiteral", "char", "literal"),
+ 
+         /**
+          * Used for instances of {@link LiteralTree} representing
+          * a string literal expression of type {@link String}.
+          */
+-        STRING_LITERAL(LiteralTree.class),
++        STRING_LITERAL(LiteralTree.class, "StringLiteral", "string", "literal"),
+ 
+         /**
+          * Used for instances of {@link LiteralTree} representing
+          * the use of {@code null}.
+          */
+-        NULL_LITERAL(LiteralTree.class),
++        NULL_LITERAL(LiteralTree.class, "NullLiteral", "null", "literal"),
+ 
+         /**
+          * Used for instances of {@link WildcardTree} representing
+          * an unbounded wildcard type argument.
+          */
+-        UNBOUNDED_WILDCARD(WildcardTree.class),
++        UNBOUNDED_WILDCARD(WildcardTree.class, "UnboundedWildcard", "?"),
+ 
+         /**
+          * Used for instances of {@link WildcardTree} representing
+          * an extends bounded wildcard type argument.
+          */
+-        EXTENDS_WILDCARD(WildcardTree.class),
++        EXTENDS_WILDCARD(WildcardTree.class, "ExtendsWildcard", "?extends"),
+ 
+         /**
+          * Used for instances of {@link WildcardTree} representing
+          * a super bounded wildcard type argument.
+          */
+-        SUPER_WILDCARD(WildcardTree.class),
++        SUPER_WILDCARD(WildcardTree.class, "SuperWildcard", "?super"),
+ 
+         /**
+          * Used for instances of {@link ErroneousTree}.
+          */
+-        ERRONEOUS(ErroneousTree.class),
++        ERRONEOUS(ErroneousTree.class, "Erroneous", "ERROR", "error"),
+ 
+         /**
+          * Used for instances of {@link ClassTree} representing interfaces.
+          */
+-        INTERFACE(ClassTree.class),
++        INTERFACE(ClassTree.class, "Interface", "interface"),
+ 
+         /**
+          * Used for instances of {@link ClassTree} representing enums.
+          */
+-        ENUM(ClassTree.class),
++        ENUM(ClassTree.class, "Enum", "enum"),
+ 
+         /**
+          * Used for instances of {@link ClassTree} representing annotation types.
+          */
+-        ANNOTATION_TYPE(ClassTree.class),
++        ANNOTATION_TYPE(ClassTree.class, "AnnotationType", "At"),
+ 
+         /**
+          * An implementation-reserved node. This is the not the node
+          * you are looking for.
+          */
+-        OTHER(null);
++        OTHER(null, "Other");
+ 
+ 
+-        Kind(Class<? extends Tree> intf) {
++		Kind(Class<? extends Tree> intf, String displayName, String... prefixAliases) {
+             associatedInterface = intf;
++            this.displayName = displayName;
++            this.preferredPrefix = (displayName != null)? displayName : toString();
++            this.preferredPrefixLowerCase = preferredPrefix.toLowerCase();
++            if (prefixAliases == null) prefixAliases = new String[0];
++            this.prefixAliases = Collections.unmodifiableSet(new HashSet<String>(Arrays.asList(prefixAliases)));
++            Set<String> tmpPrefixAliasesLowerCase = new HashSet<String>();
++            for(String e : prefixAliases) {
++            	tmpPrefixAliasesLowerCase.add(e.toLowerCase());
++            }
++            this.prefixAliasesLowerCase = Collections.unmodifiableSet(tmpPrefixAliasesLowerCase);
+         }
+ 
++        private final Class<? extends Tree> associatedInterface;
++        
++        private final String displayName;
++        
++        private final String preferredPrefix;
++
++        private final String preferredPrefixLowerCase;
++
++        private final Set<String> prefixAliases;
++        
++        private final Set<String> prefixAliasesLowerCase;
++
++
+         public Class<? extends Tree> asInterface() {
+             return associatedInterface;
+         }
+ 
+-        private final Class<? extends Tree> associatedInterface;
++        public String getDisplayName() {
++			return displayName;
++		}
++
++		public String preferredPrefix() {
++        	return preferredPrefix;
++        }
++
++        public boolean hasAliasPrefix(String prefix) {
++        	return prefixAliases.contains(prefix);
++        }
++
++        public boolean acceptPrefix(String prefix) {
++        	if (prefix == null) return false;
++        	return preferredPrefix.equals(prefix)
++        			|| prefixAliases.contains(prefix);
++        }
++
++        public boolean acceptPrefixIgnoreCase(String prefix) {
++        	if (prefix == null) return false;
++        	String prefixLowerCase = prefix.toLowerCase();
++        	return preferredPrefixLowerCase.equals(prefixLowerCase)
++        			|| prefixAliasesLowerCase.contains(prefixLowerCase);
++        }
++
+     }
+ 
+     /**
+@@ -629,4 +688,16 @@
+      * @param <D> type of additional data.
+      */
+     <R,D> R accept(TreeVisitor<R,D> visitor, D data);
++
++    /**
++     * @since jdk1.8-ARN
++     */
++    List<? extends ASTExtensionTree> getASTExtensions();
++
++    /**
++     * @since jdk1.8-ARN
++     */
++    List<ASTAnnotationTree> getASTAnnotations();
++    
++    
+ }
+diff -r fcd768844b99 src/share/classes/com/sun/source/tree/TreeVisitor.java
+--- a/src/share/classes/com/sun/source/tree/TreeVisitor.java	Thu Aug 29 16:34:12 2013 -0700
++++ b/src/share/classes/com/sun/source/tree/TreeVisitor.java	Sun Sep 01 01:31:04 2013 +0200
+@@ -58,6 +58,9 @@
+  */
+ @jdk.Supported
+ public interface TreeVisitor<R,P> {
++    /** @since 1.9-ARN ... extension for AST-level annotation */
++    R visitASTAnnotation(ASTAnnotationTree node, P p);
++
+     R visitAnnotatedType(AnnotatedTypeTree node, P p);
+     R visitAnnotation(AnnotationTree node, P p);
+     R visitMethodInvocation(MethodInvocationTree node, P p);
+diff -r fcd768844b99 src/share/classes/com/sun/source/util/SimpleTreeVisitor.java
+--- a/src/share/classes/com/sun/source/util/SimpleTreeVisitor.java	Thu Aug 29 16:34:12 2013 -0700
++++ b/src/share/classes/com/sun/source/util/SimpleTreeVisitor.java	Sun Sep 01 01:31:04 2013 +0200
+@@ -257,6 +257,10 @@
+         return defaultAction(node, p);
+     }
+ 
++    public R visitASTAnnotation(ASTAnnotationTree node, P p) {
++        return defaultAction(node, p);
++    }
++
+     public R visitAnnotation(AnnotationTree node, P p) {
+         return defaultAction(node, p);
+     }
+diff -r fcd768844b99 src/share/classes/com/sun/source/util/TreeScanner.java
+--- a/src/share/classes/com/sun/source/util/TreeScanner.java	Thu Aug 29 16:34:12 2013 -0700
++++ b/src/share/classes/com/sun/source/util/TreeScanner.java	Sun Sep 01 01:31:04 2013 +0200
+@@ -396,6 +396,12 @@
+         return scan(node.getAnnotations(), p);
+     }
+ 
++    public R visitASTAnnotation(ASTAnnotationTree node, P p) {
++        R r = scan(node.getAnnotationType(), p);
++        r = scanAndReduce(node.getArguments(), p, r);
++        return r;
++    }
++
+     public R visitAnnotation(AnnotationTree node, P p) {
+         R r = scan(node.getAnnotationType(), p);
+         r = scanAndReduce(node.getArguments(), p, r);
+diff -r fcd768844b99 src/share/classes/com/sun/tools/javac/comp/LambdaToMethod.java
+--- a/src/share/classes/com/sun/tools/javac/comp/LambdaToMethod.java	Thu Aug 29 16:34:12 2013 -0700
++++ b/src/share/classes/com/sun/tools/javac/comp/LambdaToMethod.java	Sun Sep 01 01:31:04 2013 +0200
+@@ -736,7 +736,7 @@
+          * Generate the bridge
+          */
+         JCMethodDecl bridge() {
+-            int prevPos = make.pos;
++            int prevPos = make.getPos();
+             try {
+                 make.at(tree);
+                 Type samDesc = localContext.bridgedRefSig();
+@@ -990,7 +990,7 @@
+     private JCExpression makeIndyCall(DiagnosticPosition pos, Type site, Name bsmName,
+             List<Object> staticArgs, MethodType indyType, List<JCExpression> indyArgs,
+             Name methName) {
+-        int prevPos = make.pos;
++        int prevPos = make.getPos();
+         try {
+             make.at(pos);
+             List<Type> bsm_staticArgs = List.of(syms.methodHandleLookupType,
+diff -r fcd768844b99 src/share/classes/com/sun/tools/javac/comp/Lower.java
+--- a/src/share/classes/com/sun/tools/javac/comp/Lower.java	Thu Aug 29 16:34:12 2013 -0700
++++ b/src/share/classes/com/sun/tools/javac/comp/Lower.java	Sun Sep 01 01:31:04 2013 +0200
+@@ -1688,7 +1688,7 @@
+         JCBlock catchBlock = make.Block(0L, List.<JCStatement>of(assign, rethrowStat));
+         JCCatch catchClause = make.Catch(paramTree, catchBlock);
+ 
+-        int oldPos = make.pos;
++        int oldPos = make.getPos();
+         make.at(TreeInfo.endPos(block));
+         JCBlock finallyClause = makeTwrFinallyClause(primaryException, expr);
+         make.at(oldPos);
+diff -r fcd768844b99 src/share/classes/com/sun/tools/javac/comp/TransTypes.java
+--- a/src/share/classes/com/sun/tools/javac/comp/TransTypes.java	Thu Aug 29 16:34:12 2013 -0700
++++ b/src/share/classes/com/sun/tools/javac/comp/TransTypes.java	Sun Sep 01 01:31:04 2013 +0200
+@@ -109,14 +109,14 @@
+      *  @param target  The target type.
+      */
+     JCExpression cast(JCExpression tree, Type target) {
+-        int oldpos = make.pos;
++        int oldpos = make.getPos();
+         make.at(tree.pos);
+         if (!types.isSameType(tree.type, target)) {
+             if (!resolve.isAccessible(env, target.tsym))
+                 resolve.logAccessErrorInternal(env, tree, target);
+             tree = make.TypeCast(make.Type(target), tree).setType(target);
+         }
+-        make.pos = oldpos;
++        make.at(oldpos);
+         return tree;
+     }
+ 
+diff -r fcd768844b99 src/share/classes/com/sun/tools/javac/parser/JavaTokenizer.java
+--- a/src/share/classes/com/sun/tools/javac/parser/JavaTokenizer.java	Thu Aug 29 16:34:12 2013 -0700
++++ b/src/share/classes/com/sun/tools/javac/parser/JavaTokenizer.java	Sun Sep 01 01:31:04 2013 +0200
+@@ -25,14 +25,28 @@
+ 
+ package com.sun.tools.javac.parser;
+ 
+-import com.sun.tools.javac.code.Source;
+-import com.sun.tools.javac.parser.Tokens.Comment.CommentStyle;
+-import com.sun.tools.javac.util.*;
++import static com.sun.tools.javac.util.LayoutCharacters.CR;
++import static com.sun.tools.javac.util.LayoutCharacters.EOI;
++import static com.sun.tools.javac.util.LayoutCharacters.FF;
++import static com.sun.tools.javac.util.LayoutCharacters.LF;
+ 
+ import java.nio.CharBuffer;
+ 
+-import static com.sun.tools.javac.parser.Tokens.*;
+-import static com.sun.tools.javac.util.LayoutCharacters.*;
++import com.sun.tools.javac.code.Source;
++import com.sun.tools.javac.parser.Tokens.AstAnnotationTokenExtension;
++import com.sun.tools.javac.parser.Tokens.Comment;
++import com.sun.tools.javac.parser.Tokens.Comment.CommentStyle;
++import com.sun.tools.javac.parser.Tokens.NamedToken;
++import com.sun.tools.javac.parser.Tokens.NumericToken;
++import com.sun.tools.javac.parser.Tokens.StringToken;
++import com.sun.tools.javac.parser.Tokens.Token;
++import com.sun.tools.javac.parser.Tokens.TokenExtension;
++import com.sun.tools.javac.parser.Tokens.TokenKind;
++import com.sun.tools.javac.util.Assert;
++import com.sun.tools.javac.util.List;
++import com.sun.tools.javac.util.Log;
++import com.sun.tools.javac.util.Name;
++import com.sun.tools.javac.util.Position;
+ 
+ /** The lexical analyzer maps an input stream consisting of
+  *  ASCII characters and Unicode escapes into a token sequence.
+@@ -455,7 +469,7 @@
+ 
+         int pos = 0;
+         int endPos = 0;
+-        List<Comment> comments = null;
++        List<TokenExtension> tokenExtensions = null;
+ 
+         try {
+             loop: while (true) {
+@@ -579,38 +593,73 @@
+                             reader.scanCommentChar();
+                         } while (reader.ch != CR && reader.ch != LF && reader.bp < reader.buflen);
+                         if (reader.bp < reader.buflen) {
+-                            comments = addComment(comments, processComment(pos, reader.bp, CommentStyle.LINE));
++                            tokenExtensions = addComment(tokenExtensions, processComment(pos, reader.bp, CommentStyle.LINE));
+                         }
+                         break;
+                     } else if (reader.ch == '*') {
+                         boolean isEmpty = false;
+                         reader.scanChar();
+-                        CommentStyle style;
+-                        if (reader.ch == '*') {
+-                            style = CommentStyle.JAVADOC;
++                        char commentCh1 = reader.ch;
++
++                        // {{ PATCH ARN: detect newt start pattern "/*@@" = start of AST annotation (until "@@*/")   (sub case of "/*" = start fo comment until "*/" )  
++                        // => to supports smooth backward compitibility
++                        // => aim to use real compiled-time checked AST annotation: "@@AstType:AnnotationClass(param=value)" ??
++                        boolean detectedAstAnnotation = false;
++                        if (commentCh1 == '@') {
+                             reader.scanCommentChar();
+-                            if (reader.ch == '/') {
+-                                isEmpty = true;
+-                            }
+-                        } else {
+-                            style = CommentStyle.BLOCK;
+-                        }
+-                        while (!isEmpty && reader.bp < reader.buflen) {
+-                            if (reader.ch == '*') {
++                            if (reader.ch == '@') {
+                                 reader.scanChar();
+-                                if (reader.ch == '/') break;
+-                            } else {
+-                                reader.scanCommentChar();
++                                // detected AST-annotation !!
++                                detectedAstAnnotation = true;
++                                // tk = TokenKind.MONKEYS_AST_AT_START; 
++                                // break loop; // => would require parser to recognize new grammar with AST-annotation (everywhere in AST grammar) !...
++                                
++                                // => instead, consume AST-annotation as a pure java comment, so Parser does not handle it!
++                                // analogy: XDoclet /*@..*/ => inside java comment => tools supports is poor, but langage is backward compatible with jdk1.4
++                                //      after jdk5: real @.. => tools supports are better, and no more compatible with jdk<5
++                                
++                                AstAnnotationTokenExtension astAnnotation = scanAstAnnotation(pos);
++                                tokenExtensions = addTokenExtension(tokenExtensions, astAnnotation);
++                                
++                                // considered as comment => no token returned
++                                reader.sp = 0; // clear buffer!
++                                break;
+                             }
+                         }
+-                        if (reader.ch == '/') {
+-                            reader.scanChar();
+-                            comments = addComment(comments, processComment(pos, reader.bp, style));
+-                            break;
+-                        } else {
+-                            lexError(pos, "unclosed.comment");
+-                            break loop;
++                        
++                        if (!detectedAstAnnotation) {
++                            // TODO??? push back char to preserve comment ??
++                            
++                            CommentStyle style;
++                            if (commentCh1 == '*') {
++                                style = CommentStyle.JAVADOC;
++                                reader.scanCommentChar();
++                                if (reader.ch == '/') {
++                                    isEmpty = true;
++                                }
++                            } else {
++                                style = CommentStyle.BLOCK;
++                            }
++                            while (!isEmpty && reader.bp < reader.buflen) {
++                                if (reader.ch == '*') {
++                                    reader.scanChar();
++                                    if (reader.ch == '/') break;
++                                } else {
++                                    reader.scanCommentChar();
++                                }
++                            }
++                            if (reader.ch == '/') {
++                                reader.scanChar();
++                                tokenExtensions = addComment(tokenExtensions, processComment(pos, reader.bp, style));
++                                break;
++                            } else {
++                                lexError(pos, "unclosed.comment");
++                                break loop;
++                            }
++                            
+                         }
++                        // }} PATCH ARN:
++                        
+                     } else if (reader.ch == '=') {
+                         tk = TokenKind.SLASHEQ;
+                         reader.scanChar();
+@@ -683,10 +732,10 @@
+             }
+             endPos = reader.bp;
+             switch (tk.tag) {
+-                case DEFAULT: return new Token(tk, pos, endPos, comments);
+-                case NAMED: return new NamedToken(tk, pos, endPos, name, comments);
+-                case STRING: return new StringToken(tk, pos, endPos, reader.chars(), comments);
+-                case NUMERIC: return new NumericToken(tk, pos, endPos, reader.chars(), radix, comments);
++                case DEFAULT: return new Token(tk, pos, endPos, tokenExtensions);
++                case NAMED: return new NamedToken(tk, pos, endPos, name, tokenExtensions);
++                case STRING: return new StringToken(tk, pos, endPos, reader.chars(), tokenExtensions);
++                case NUMERIC: return new NumericToken(tk, pos, endPos, reader.chars(), radix, tokenExtensions);
+                 default: throw new AssertionError();
+             }
+         }
+@@ -699,13 +748,85 @@
+             }
+         }
+     }
++
+     //where
+-        List<Comment> addComment(List<Comment> comments, Comment comment) {
+-            return comments == null ?
+-                    List.of(comment) :
+-                    comments.prepend(comment);
++        List<TokenExtension> addComment(List<TokenExtension> ls, Comment comment) {
++            return ls == null ?
++                    List.of((TokenExtension) comment) :
++                    ls.prepend(comment);
+         }
+ 
++        List<TokenExtension> addTokenExtension(List<TokenExtension> ls, TokenExtension elt) {
++            return ls == null ?
++                    List.of(elt) :
++                    ls.prepend(elt);
++        }
++        
++    // {{ PATCH ARN
++    /** scan an AST-level annotation after token MONKEYS_AST_AT_START up to MONKEYS_AST_AT_END 
++     * currently supports for embedded comment "/*@@" ... "*&x047;" 
++     * may be extended to extended grammar syntax "@@" ... ")"  
++     * 
++     * this code "should" go in JavacParser, as for JavacParser.annotations() 
++     * much helper method are already in JavacParser!!! example: accept(), parse qualifiedId() from id(), annotationFieldValuesOpt() ..
++     * 
++     * AST-level annotation = { "/*@@" (astTypeName ':' )? annotationName ( '(' annotationParameters? ')' )? "*&x047;" }
++     *   
++     */
++    private AstAnnotationTokenExtension scanAstAnnotation(int pos) {
++        AstAnnotationTokenExtension res = null;
++        // accept(MONKEYS_AST_AT_START) already consumed by parent caller
++
++        Name optAstTypeName = null;
++        Name annotationName = null;
++        String text = null; // TODO... replace by list of params values
++        this.scanIdent();
++        Name name1 = reader.name(); 
++        
++        if (reader.ch == ':') {
++            // type of ast
++            optAstTypeName = name1;
++            annotationName = reader.name();
++            reader.scanChar();
++        } else {
++            annotationName = name1;
++        }
++        
++        // TODO ... List<JCExpression> fieldValues = annotationFieldValuesOpt();
++        if (reader.ch == '(') {
++            // TODO ... parse annotation parameters  (not supported yet)
++            
++            text = null; // TODO
++            
++            reader.scanChar();
++            assert reader.ch == ')';
++            reader.scanChar();
++        }
++        
++        // accept(MONKEYS_AST_AT_END);
++        // code adapter from end of java comment
++        boolean isEmpty = false;
++        while (!isEmpty && reader.bp < reader.buflen) {
++            if (reader.ch == '*') {
++                reader.scanChar();
++                if (reader.ch == '/') break;
++            } else {
++                reader.scanCommentChar();
++            }
++        }
++        if (reader.ch == '/') {
++            reader.scanChar();
++            // comments = addComment(comments, processComment(pos, reader.bp, style));
++            res = new BasicAstAnnotationTokenExtension(optAstTypeName, annotationName, text);
++            // break;
++        } else {
++            lexError(pos, "unclosed.comment.astannotation");
++            // break loop;
++        }
++        return res;
++    }
++    // }} PATCH ARN
++    
+     /** Return the position where a lexical error occurred;
+      */
+     public int errPos() {
+@@ -763,7 +884,56 @@
+         return Position.makeLineMap(reader.getRawCharacters(), reader.buflen, false);
+     }
+ 
++    protected static class BasicAstAnnotationTokenExtension implements AstAnnotationTokenExtension {
++        // TODO ... or move as real grammar element!
++        protected Name annotationTypePrefix;
++        protected Name annotationName;
++        protected String text;
++        
++        public BasicAstAnnotationTokenExtension(Name annotationTypePrefix, Name annotationName, String text) {
++            this.annotationTypePrefix = annotationTypePrefix;
++            this.annotationName = annotationName;
++            this.text = text;
++        }
++        
++        @Override
++        public int getSourcePos(int index) {
++            return -1; // TODO.. share in parent class AbstractTokenExtension ?
++        }
+ 
++        @Override
++        public TokenExtensionKind getTokenExtensionKind() {
++            return TokenExtensionKind.AST_ANNOTATION;
++        }
++
++
++        public Name getAnnotationTypePrefix() {
++            return annotationTypePrefix;
++        }
++
++        public void setAnnotationTypePrefix(Name annotationTypePrefix) {
++            this.annotationTypePrefix = annotationTypePrefix;
++        }
++
++        public Name getAnnotationName() {
++            return annotationName;
++        }
++
++        public void setAnnotationName(Name annotationName) {
++            this.annotationName = annotationName;
++        }
++
++        public String getText() {
++            return text;
++        }
++
++        public void setText(String text) {
++            this.text = text;
++        }
++        
++        
++    }
++    
+     /**
+     * Scan a documentation comment; determine if a deprecated tag is present.
+     * Called once the initial /, * have been skipped, positioned at the second *
+@@ -783,6 +953,12 @@
+             this.cs = cs;
+         }
+ 
++        
++        @Override
++        public TokenExtensionKind getTokenExtensionKind() {
++            return TokenExtensionKind.COMMENT;
++        }
++
+         public String getText() {
+             return null;
+         }
+diff -r fcd768844b99 src/share/classes/com/sun/tools/javac/parser/JavacParser.java
+--- a/src/share/classes/com/sun/tools/javac/parser/JavacParser.java	Thu Aug 29 16:34:12 2013 -0700
++++ b/src/share/classes/com/sun/tools/javac/parser/JavacParser.java	Sun Sep 01 01:31:04 2013 +0200
+@@ -296,6 +296,10 @@
+     public void nextToken() {
+         S.nextToken();
+         token = S.token();
++        
++        if (F != null && token != null) {
++            F.pushTokenExtensions(token);
++        }
+     }
+ 
+     protected boolean peekToken(Filter<TokenKind> tk) {
+@@ -422,7 +426,7 @@
+ 
+     private JCErroneous syntaxError(int pos, List<JCTree> errs, String key, TokenKind... args) {
+         setErrorEndPos(pos);
+-        JCErroneous err = F.at(pos).Erroneous(errs);
++        JCErroneous err = newAt(pos).Erroneous(errs);
+         reportSyntaxError(err, key, (Object[])args);
+         if (errs != null) {
+             JCTree last = errs.last();
+@@ -515,6 +519,35 @@
+         }
+     }
+ 
++/* ---------- AST position + comment + annotation --------- */
++    
++    @Deprecated 
++    /** 
++     * should use everywhere   "fillPos(F.NewXY(newXYArgs), pos)" instead of "F.at(pos).NewXY(newXYArgs); ... and remove code F.at() ?
++     * cf also code in nextToken() ==> side effect:
++     *      F.pushTokenExtensions(token);
++     *      ==> side effect: F.pushedTokenExtensionsReverseStack.prependList(token.getTreeExtensions())
++     * cf code in "all" calls to "nextToken()" ==> side effect: push current pos as local var to reuse 
++     *      int pos = token.pos; 
++     * cf code in F.NewXY(..) => side effects:   
++     *      F.fillTreeInfo(tree) => side effects:
++     *         tree.pos = F.pos;
++     *         astAnnotations = consume from F.pushedTokenExtensionsReverseStack
++     *         tree.addASTExtensions(astAnnotations)
++     *      
++     * Problem: F.at() is used also in all Tree transformation phase ...
++     * => may refactor code, to use  "public abstract class TreeInfoFeeder { void fill(JCTree tree); }"
++     * and store a TreeInfoFeeder into TreeMaker for compatibility 
++     * 
++     * @param pos
++     * @return
++     */
++    private TreeMaker newAt(int pos) {
++    	return F .newAt(pos);
++    }
++    
++    
++
+ /* ---------- doc comments --------- */
+ 
+     /** A table to store all documentation comments
+@@ -586,7 +619,7 @@
+             Name name = token.name();
+             nextToken();
+             return name;
+-        } else if (token.kind == ASSERT) {
++        } else if (token.kind == TokenKind.ASSERT) {
+             if (allowAsserts) {
+                 error(token.pos, "assert.as.identifier");
+                 nextToken();
+@@ -635,7 +668,7 @@
+      * Qualident = Ident { DOT [Annotations] Ident }
+      */
+     public JCExpression qualident(boolean allowAnnos) {
+-        JCExpression t = toP(F.at(token.pos).Ident(ident()));
++        JCExpression t = toP(newAt(token.pos).Ident(ident()));
+         while (token.kind == DOT) {
+             int pos = token.pos;
+             nextToken();
+@@ -643,9 +676,9 @@
+             if (allowAnnos) {
+                 tyannos = typeAnnotationsOpt();
+             }
+-            t = toP(F.at(pos).Select(t, ident()));
++            t = toP(newAt(pos).Select(t, ident()));
+             if (tyannos != null && tyannos.nonEmpty()) {
+-                t = toP(F.at(tyannos.head.pos).AnnotatedType(tyannos, t));
++                t = toP(newAt(tyannos.head.pos).AnnotatedType(tyannos, t));
+             }
+         }
+         return t;
+@@ -672,7 +705,7 @@
+         switch (token.kind) {
+         case INTLITERAL:
+             try {
+-                t = F.at(pos).Literal(
++                t = newAt(pos).Literal(
+                     TypeTag.INT,
+                     Convert.string2int(strval(prefix), token.radix()));
+             } catch (NumberFormatException ex) {
+@@ -681,7 +714,7 @@
+             break;
+         case LONGLITERAL:
+             try {
+-                t = F.at(pos).Literal(
++                t = newAt(pos).Literal(
+                     TypeTag.LONG,
+                     new Long(Convert.string2long(strval(prefix), token.radix())));
+             } catch (NumberFormatException ex) {
+@@ -704,7 +737,7 @@
+             else if (n.floatValue() == Float.POSITIVE_INFINITY)
+                 error(token.pos, "fp.number.too.large");
+             else
+-                t = F.at(pos).Literal(TypeTag.FLOAT, n);
++                t = newAt(pos).Literal(TypeTag.FLOAT, n);
+             break;
+         }
+         case DOUBLELITERAL: {
+@@ -723,26 +756,26 @@
+             else if (n.doubleValue() == Double.POSITIVE_INFINITY)
+                 error(token.pos, "fp.number.too.large");
+             else
+-                t = F.at(pos).Literal(TypeTag.DOUBLE, n);
++                t = newAt(pos).Literal(TypeTag.DOUBLE, n);
+             break;
+         }
+         case CHARLITERAL:
+-            t = F.at(pos).Literal(
++            t = newAt(pos).Literal(
+                 TypeTag.CHAR,
+                 token.stringVal().charAt(0) + 0);
+             break;
+         case STRINGLITERAL:
+-            t = F.at(pos).Literal(
++            t = newAt(pos).Literal(
+                 TypeTag.CLASS,
+                 token.stringVal());
+             break;
+         case TRUE: case FALSE:
+-            t = F.at(pos).Literal(
++            t = newAt(pos).Literal(
+                 TypeTag.BOOLEAN,
+                 (token.kind == TRUE ? 1 : 0));
+             break;
+         case NULL:
+-            t = F.at(pos).Literal(
++            t = newAt(pos).Literal(
+                 TypeTag.BOT,
+                 null);
+             break;
+@@ -750,7 +783,7 @@
+             Assert.error();
+         }
+         if (t == errorTree)
+-            t = F.at(pos).Erroneous();
++            t = newAt(pos).Erroneous();
+         storeEnd(t, token.endPos);
+         nextToken();
+         return t;
+@@ -844,7 +877,7 @@
+             nextToken();
+             mode = EXPR;
+             JCExpression t1 = term();
+-            return toP(F.at(pos).Assign(t, t1));
++            return toP(newAt(pos).Assign(t, t1));
+         }
+         case PLUSEQ:
+         case SUBEQ:
+@@ -862,7 +895,7 @@
+             nextToken();
+             mode = EXPR;
+             JCExpression t1 = term();
+-            return F.at(pos).Assignop(optag(tk), t, t1);
++            return newAt(pos).Assignop(optag(tk), t, t1);
+         default:
+             return t;
+         }
+@@ -891,7 +924,7 @@
+             JCExpression t1 = term();
+             accept(COLON);
+             JCExpression t2 = term1();
+-            return F.at(pos).Conditional(t, t1, t2);
++            return newAt(pos).Conditional(t, t1, t2);
+         } else {
+             return t;
+         }
+@@ -952,7 +985,7 @@
+         if (t.hasTag(JCTree.Tag.PLUS)) {
+             StringBuilder buf = foldStrings(t);
+             if (buf != null) {
+-                t = toP(F.at(startPos).Literal(TypeTag.CLASS, buf.toString()));
++                t = toP(newAt(startPos).Literal(TypeTag.CLASS, buf.toString()));
+             }
+         }
+ 
+@@ -969,9 +1002,9 @@
+                                     JCExpression od2)
+         {
+             if (topOp == INSTANCEOF) {
+-                return F.at(pos).TypeTest(od1, od2);
++                return newAt(pos).TypeTest(od1, od2);
+             } else {
+-                return F.at(pos).Binary(optag(topOp), od1, od2);
++                return newAt(pos).Binary(optag(topOp), od1, od2);
+             }
+         }
+         /** If tree is a concatenation of string literals, replace it
+@@ -1084,7 +1117,7 @@
+                     t = literal(names.hyphen, pos);
+                 } else {
+                     t = term3();
+-                    return F.at(pos).Unary(unoptag(tk), t);
++                    return newAt(pos).Unary(unoptag(tk), t);
+                 }
+             } else return illegal();
+             break;
+@@ -1103,12 +1136,12 @@
+                            targets = targets.prepend(term3());
+                        }
+                        if (targets.length() > 1) {
+-                           t = toP(F.at(pos1).TypeIntersection(targets.reverse()));
++                           t = toP(newAt(pos1).TypeIntersection(targets.reverse()));
+                        }
+                        accept(RPAREN);
+                        mode = EXPR;
+                        JCExpression t1 = term3();
+-                       return F.at(pos).TypeCast(t, t1);
++                       return newAt(pos).TypeCast(t, t1);
+                     case IMPLICIT_LAMBDA:
+                     case EXPLICIT_LAMBDA:
+                         t = lambdaExpressionOrStatement(true, pres == ParensResult.EXPLICIT_LAMBDA, pos);
+@@ -1118,7 +1151,7 @@
+                         mode = EXPR;
+                         t = termRest(term1Rest(term2Rest(term3(), TreeInfo.orPrec)));
+                         accept(RPAREN);
+-                        t = toP(F.at(pos).Parens(t));
++                        t = toP(newAt(pos).Parens(t));
+                         break;
+                 }
+             } else {
+@@ -1128,7 +1161,7 @@
+         case THIS:
+             if ((mode & EXPR) != 0) {
+                 mode = EXPR;
+-                t = to(F.at(pos).Ident(names._this));
++                t = to(newAt(pos).Ident(names._this));
+                 nextToken();
+                 if (typeArgs == null)
+                     t = argumentsOpt(null, t);
+@@ -1140,7 +1173,7 @@
+         case SUPER:
+             if ((mode & EXPR) != 0) {
+                 mode = EXPR;
+-                t = to(F.at(pos).Ident(names._super));
++                t = to(newAt(pos).Ident(names._super));
+                 t = superSuffix(typeArgs, t);
+                 typeArgs = null;
+             } else return illegal();
+@@ -1178,7 +1211,7 @@
+                 switch (expr.getTag()) {
+                 case REFERENCE: {
+                     JCMemberReference mref = (JCMemberReference) expr;
+-                    mref.expr = toP(F.at(pos).AnnotatedType(typeAnnos, mref.expr));
++                    mref.expr = toP(newAt(pos).AnnotatedType(typeAnnos, mref.expr));
+                     t = mref;
+                     break;
+                 }
+@@ -1206,7 +1239,7 @@
+             if ((mode & EXPR) != 0 && peekToken(ARROW)) {
+                 t = lambdaExpressionOrStatement(false, false, pos);
+             } else {
+-                t = toP(F.at(token.pos).Ident(ident()));
++                t = toP(newAt(token.pos).Ident(ident()));
+                 loop: while (true) {
+                     pos = token.pos;
+                     final List<JCAnnotation> annos = typeAnnotationsOpt();
+@@ -1222,9 +1255,9 @@
+                         if (token.kind == RBRACKET) {
+                             nextToken();
+                             t = bracketsOpt(t);
+-                            t = toP(F.at(pos).TypeArray(t));
++                            t = toP(newAt(pos).TypeArray(t));
+                             if (annos.nonEmpty()) {
+-                                t = toP(F.at(pos).AnnotatedType(annos, t));
++                                t = toP(newAt(pos).AnnotatedType(annos, t));
+                             }
+                             // .class is only allowed if there were no annotations
+                             JCExpression nt = bracketsSuffix(t);
+@@ -1240,7 +1273,7 @@
+                                 mode = EXPR;
+                                 JCExpression t1 = term();
+                                 if (!annos.isEmpty()) t = illegal(annos.head.pos);
+-                                t = to(F.at(pos).Indexed(t, t1));
++                                t = to(newAt(pos).Indexed(t, t1));
+                             }
+                             accept(RBRACKET);
+                         }
+@@ -1264,18 +1297,18 @@
+                             case CLASS:
+                                 if (typeArgs != null) return illegal();
+                                 mode = EXPR;
+-                                t = to(F.at(pos).Select(t, names._class));
++                                t = to(newAt(pos).Select(t, names._class));
+                                 nextToken();
+                                 break loop;
+                             case THIS:
+                                 if (typeArgs != null) return illegal();
+                                 mode = EXPR;
+-                                t = to(F.at(pos).Select(t, names._this));
++                                t = to(newAt(pos).Select(t, names._this));
+                                 nextToken();
+                                 break loop;
+                             case SUPER:
+                                 mode = EXPR;
+-                                t = to(F.at(pos).Select(t, names._super));
++                                t = to(newAt(pos).Select(t, names._super));
+                                 t = superSuffix(typeArgs, t);
+                                 typeArgs = null;
+                                 break loop;
+@@ -1296,9 +1329,9 @@
+                             tyannos = typeAnnotationsOpt();
+                         }
+                         // typeArgs saved for next loop iteration.
+-                        t = toP(F.at(pos).Select(t, ident()));
++                        t = toP(newAt(pos).Select(t, ident()));
+                         if (tyannos != null && tyannos.nonEmpty()) {
+-                            t = toP(F.at(tyannos.head.pos).AnnotatedType(tyannos, t));
++                            t = toP(newAt(tyannos.head.pos).AnnotatedType(tyannos, t));
+                         }
+                         break;
+                     case ELLIPSIS:
+@@ -1322,12 +1355,12 @@
+                                 args.append(typeArgument());
+                             }
+                             accept(GT);
+-                            t = toP(F.at(pos1).TypeApply(t, args.toList()));
++                            t = toP(newAt(pos1).TypeApply(t, args.toList()));
+                             checkGenerics();
+                             while (token.kind == DOT) {
+                                 nextToken();
+                                 mode = TYPE;
+-                                t = toP(F.at(token.pos).Select(t, ident()));
++                                t = toP(newAt(token.pos).Select(t, ident()));
+                                 t = typeArgumentsOpt(t);
+                             }
+                             t = bracketsOpt(t);
+@@ -1357,7 +1390,7 @@
+             if ((mode & EXPR) != 0) {
+                 nextToken();
+                 if (token.kind == DOT) {
+-                    JCPrimitiveTypeTree ti = toP(F.at(pos).TypeIdent(TypeTag.VOID));
++                    JCPrimitiveTypeTree ti = toP(newAt(pos).TypeIdent(TypeTag.VOID));
+                     t = bracketsSuffix(ti);
+                 } else {
+                     return illegal(pos);
+@@ -1366,7 +1399,7 @@
+                 // Support the corner case of myMethodHandle.<void>invoke() by passing
+                 // a void type (like other primitive types) to the next phase.
+                 // The error will be reported in Attr.attribTypes or Attr.visitApply.
+-                JCPrimitiveTypeTree ti = to(F.at(pos).TypeIdent(TypeTag.VOID));
++                JCPrimitiveTypeTree ti = to(newAt(pos).TypeIdent(TypeTag.VOID));
+                 nextToken();
+                 return ti;
+                 //return illegal();
+@@ -1392,13 +1425,13 @@
+                     if (token.kind == RBRACKET) {
+                         nextToken();
+                         t = bracketsOpt(t);
+-                        t = toP(F.at(pos1).TypeArray(t));
++                        t = toP(newAt(pos1).TypeArray(t));
+                         if (token.kind == COLCOL) {
+                             mode = EXPR;
+                             continue;
+                         }
+                         if (annos.nonEmpty()) {
+-                            t = toP(F.at(pos1).AnnotatedType(annos, t));
++                            t = toP(newAt(pos1).AnnotatedType(annos, t));
+                         }
+                         return t;
+                     }
+@@ -1407,7 +1440,7 @@
+                 if ((mode & EXPR) != 0) {
+                     mode = EXPR;
+                     JCExpression t1 = term();
+-                    t = to(F.at(pos1).Indexed(t, t1));
++                    t = to(newAt(pos1).Indexed(t, t1));
+                 }
+                 accept(RBRACKET);
+             } else if (token.kind == DOT) {
+@@ -1415,7 +1448,7 @@
+                 typeArgs = typeArgumentsOpt(EXPR);
+                 if (token.kind == SUPER && (mode & EXPR) != 0) {
+                     mode = EXPR;
+-                    t = to(F.at(pos1).Select(t, names._super));
++                    t = to(newAt(pos1).Select(t, names._super));
+                     nextToken();
+                     t = arguments(typeArgs, t);
+                     typeArgs = null;
+@@ -1433,9 +1466,9 @@
+                         // is the mode check needed?
+                         tyannos = typeAnnotationsOpt();
+                     }
+-                    t = toP(F.at(pos1).Select(t, ident()));
++                    t = toP(newAt(pos1).Select(t, ident()));
+                     if (tyannos != null && tyannos.nonEmpty()) {
+-                        t = toP(F.at(tyannos.head.pos).AnnotatedType(tyannos, t));
++                        t = toP(newAt(tyannos.head.pos).AnnotatedType(tyannos, t));
+                     }
+                     t = argumentsOpt(typeArgs, typeArgumentsOpt(t));
+                     typeArgs = null;
+@@ -1457,7 +1490,7 @@
+         }
+         while ((token.kind == PLUSPLUS || token.kind == SUBSUB) && (mode & EXPR) != 0) {
+             mode = EXPR;
+-            t = to(F.at(token.pos).Unary(
++            t = to(newAt(token.pos).Unary(
+                   token.kind == PLUSPLUS ? POSTINC : POSTDEC, t));
+             nextToken();
+         }
+@@ -1718,12 +1751,12 @@
+ 
+     JCExpression lambdaStatement(List<JCVariableDecl> args, int pos, int pos2) {
+         JCBlock block = block(pos2, 0);
+-        return toP(F.at(pos).Lambda(args, block));
++        return toP(newAt(pos).Lambda(args, block));
+     }
+ 
+     JCExpression lambdaExpression(List<JCVariableDecl> args, int pos) {
+         JCTree expr = parseExpression();
+-        return toP(F.at(pos).Lambda(args, expr));
++        return toP(newAt(pos).Lambda(args, expr));
+     }
+ 
+     /** SuperSuffix = Arguments | "." [TypeArguments] Ident [Arguments]
+@@ -1739,7 +1772,7 @@
+             int pos = token.pos;
+             accept(DOT);
+             typeArgs = (token.kind == LT) ? typeArguments(false) : null;
+-            t = toP(F.at(pos).Select(t, ident()));
++            t = toP(newAt(pos).Select(t, ident()));
+             t = argumentsOpt(typeArgs, t);
+         }
+         return t;
+@@ -1748,7 +1781,7 @@
+     /** BasicType = BYTE | SHORT | CHAR | INT | LONG | FLOAT | DOUBLE | BOOLEAN
+      */
+     JCPrimitiveTypeTree basicType() {
+-        JCPrimitiveTypeTree t = to(F.at(token.pos).TypeIdent(typetag(token.kind)));
++        JCPrimitiveTypeTree t = to(newAt(token.pos).TypeIdent(typetag(token.kind)));
+         nextToken();
+         return t;
+     }
+@@ -1787,7 +1820,7 @@
+     JCMethodInvocation arguments(List<JCExpression> typeArgs, JCExpression t) {
+         int pos = token.pos;
+         List<JCExpression> args = arguments();
+-        return toP(F.at(pos).Apply(typeArgs, t, args));
++        return toP(newAt(pos).Apply(typeArgs, t, args));
+     }
+ 
+     /**  TypeArgumentsOpt = [ TypeArguments ]
+@@ -1875,29 +1908,29 @@
+         nextToken();
+         JCExpression result;
+         if (token.kind == EXTENDS) {
+-            TypeBoundKind t = to(F.at(pos).TypeBoundKind(BoundKind.EXTENDS));
++            TypeBoundKind t = to(newAt(pos).TypeBoundKind(BoundKind.EXTENDS));
+             nextToken();
+             JCExpression bound = parseType();
+-            result = F.at(pos).Wildcard(t, bound);
++            result = newAt(pos).Wildcard(t, bound);
+         } else if (token.kind == SUPER) {
+-            TypeBoundKind t = to(F.at(pos).TypeBoundKind(BoundKind.SUPER));
++            TypeBoundKind t = to(newAt(pos).TypeBoundKind(BoundKind.SUPER));
+             nextToken();
+             JCExpression bound = parseType();
+-            result = F.at(pos).Wildcard(t, bound);
++            result = newAt(pos).Wildcard(t, bound);
+         } else if (LAX_IDENTIFIER.accepts(token.kind)) {
+             //error recovery
+-            TypeBoundKind t = F.at(Position.NOPOS).TypeBoundKind(BoundKind.UNBOUND);
+-            JCExpression wc = toP(F.at(pos).Wildcard(t, null));
+-            JCIdent id = toP(F.at(token.pos).Ident(ident()));
+-            JCErroneous err = F.at(pos).Erroneous(List.<JCTree>of(wc, id));
++            TypeBoundKind t = newAt(Position.NOPOS).TypeBoundKind(BoundKind.UNBOUND);
++            JCExpression wc = toP(newAt(pos).Wildcard(t, null));
++            JCIdent id = toP(newAt(token.pos).Ident(ident()));
++            JCErroneous err = newAt(pos).Erroneous(List.<JCTree>of(wc, id));
+             reportSyntaxError(err, "expected3", GT, EXTENDS, SUPER);
+             result = err;
+         } else {
+-            TypeBoundKind t = toP(F.at(pos).TypeBoundKind(BoundKind.UNBOUND));
+-            result = toP(F.at(pos).Wildcard(t, null));
++            TypeBoundKind t = toP(newAt(pos).TypeBoundKind(BoundKind.UNBOUND));
++            result = toP(newAt(pos).Wildcard(t, null));
+         }
+         if (!annotations.isEmpty()) {
+-            result = toP(F.at(annotations.head.pos).AnnotatedType(annotations,result));
++            result = toP(newAt(annotations.head.pos).AnnotatedType(annotations,result));
+         }
+         return result;
+     }
+@@ -1905,7 +1938,7 @@
+     JCTypeApply typeArguments(JCExpression t, boolean diamondAllowed) {
+         int pos = token.pos;
+         List<JCExpression> args = typeArguments(diamondAllowed);
+-        return toP(F.at(pos).TypeApply(t, args));
++        return toP(newAt(pos).TypeApply(t, args));
+     }
+ 
+     /**
+@@ -1933,7 +1966,7 @@
+         }
+ 
+         if (!annotations.isEmpty()) {
+-            t = toP(F.at(token.pos).AnnotatedType(annotations, t));
++            t = toP(newAt(token.pos).AnnotatedType(annotations, t));
+         }
+         return t;
+     }
+@@ -1948,9 +1981,9 @@
+             List<JCAnnotation> annotations) {
+         accept(RBRACKET);
+         t = bracketsOpt(t);
+-        t = toP(F.at(pos).TypeArray(t));
++        t = toP(newAt(pos).TypeArray(t));
+         if (annotations.nonEmpty()) {
+-            t = toP(F.at(pos).AnnotatedType(annotations, t));
++            t = toP(newAt(pos).AnnotatedType(annotations, t));
+         }
+         return t;
+     }
+@@ -1973,9 +2006,9 @@
+                 } else {
+                     name = names.error;
+                 }
+-                t = F.at(pos).Erroneous(List.<JCTree>of(toP(F.at(pos).Select(t, name))));
++                t = newAt(pos).Erroneous(List.<JCTree>of(toP(newAt(pos).Select(t, name))));
+             } else {
+-                t = toP(F.at(pos).Select(t, names._class));
++                t = toP(newAt(pos).Select(t, names._class));
+             }
+         } else if ((mode & TYPE) != 0) {
+             if (token.kind != COLCOL) {
+@@ -2014,7 +2047,7 @@
+             refMode = ReferenceMode.INVOKE;
+             refName = ident();
+         }
+-        return toP(F.at(t.getStartPosition()).Reference(refMode, refName, t, typeArgs));
++        return toP(newAt(t.getStartPosition()).Reference(refMode, refName, t, typeArgs));
+     }
+ 
+     /** Creator = [Annotations] Qualident [TypeArguments] ( ArrayCreatorRest | ClassCreatorRest )
+@@ -2029,7 +2062,7 @@
+                 if (newAnnotations.isEmpty()) {
+                     return arrayCreatorRest(newpos, basicType());
+                 } else {
+-                    return arrayCreatorRest(newpos, toP(F.at(newAnnotations.head.pos).AnnotatedType(newAnnotations, basicType())));
++                    return arrayCreatorRest(newpos, toP(newAt(newAnnotations.head.pos).AnnotatedType(newAnnotations, basicType())));
+                 }
+             }
+             break;
+@@ -2055,10 +2088,10 @@
+             int pos = token.pos;
+             nextToken();
+             List<JCAnnotation> tyannos = typeAnnotationsOpt();
+-            t = toP(F.at(pos).Select(t, ident()));
++            t = toP(newAt(pos).Select(t, ident()));
+ 
+             if (tyannos != null && tyannos.nonEmpty()) {
+-                t = toP(F.at(tyannos.head.pos).AnnotatedType(tyannos, t));
++                t = toP(newAt(tyannos.head.pos).AnnotatedType(tyannos, t));
+             }
+ 
+             if (token.kind == LT) {
+@@ -2078,7 +2111,7 @@
+             JCExpression e = arrayCreatorRest(newpos, t);
+             if (diamondFound) {
+                 reportSyntaxError(lastTypeargsPos, "cannot.create.array.with.diamond");
+-                return toP(F.at(newpos).Erroneous(List.of(e)));
++                return toP(newAt(newpos).Erroneous(List.of(e)));
+             }
+             else if (typeArgs != null) {
+                 int pos = newpos;
+@@ -2089,7 +2122,7 @@
+                     pos = typeArgs.head.pos;
+                 }
+                 setErrorEndPos(S.prevToken().endPos);
+-                JCErroneous err = F.at(pos).Erroneous(typeArgs.prepend(e));
++                JCErroneous err = newAt(pos).Erroneous(typeArgs.prepend(e));
+                 reportSyntaxError(err, "cannot.create.array.with.type.arguments");
+                 return toP(err);
+             }
+@@ -2117,8 +2150,8 @@
+         } else {
+             setErrorEndPos(token.pos);
+             reportSyntaxError(token.pos, "expected2", LPAREN, LBRACKET);
+-            t = toP(F.at(newpos).NewClass(null, typeArgs, t, List.<JCExpression>nil(), null));
+-            return toP(F.at(newpos).Erroneous(List.<JCTree>of(t)));
++            t = toP(newAt(newpos).NewClass(null, typeArgs, t, List.<JCExpression>nil(), null));
++            return toP(newAt(newpos).Erroneous(List.<JCTree>of(t)));
+         }
+     }
+ 
+@@ -2127,10 +2160,10 @@
+     JCExpression innerCreator(int newpos, List<JCExpression> typeArgs, JCExpression encl) {
+         List<JCAnnotation> newAnnotations = typeAnnotationsOpt();
+ 
+-        JCExpression t = toP(F.at(token.pos).Ident(ident()));
++        JCExpression t = toP(newAt(token.pos).Ident(ident()));
+ 
+         if (newAnnotations.nonEmpty()) {
+-            t = toP(F.at(newAnnotations.head.pos).AnnotatedType(newAnnotations, t));
++            t = toP(newAt(newAnnotations.head.pos).AnnotatedType(newAnnotations, t));
+         }
+ 
+         if (token.kind == LT) {
+@@ -2168,7 +2201,7 @@
+                 }
+                 return na;
+             } else {
+-                JCExpression t = toP(F.at(newpos).NewArray(elemtype, List.<JCExpression>nil(), null));
++                JCExpression t = toP(newAt(newpos).NewArray(elemtype, List.<JCExpression>nil(), null));
+                 return syntaxError(token.pos, List.<JCTree>of(t), "array.dimension.missing");
+             }
+         } else {
+@@ -2198,7 +2231,7 @@
+                 }
+             }
+ 
+-            JCNewArray na = toP(F.at(newpos).NewArray(elemtype, dims.toList(), null));
++            JCNewArray na = toP(newAt(newpos).NewArray(elemtype, dims.toList(), null));
+             na.dimAnnotations = dimAnnotations.toList();
+             return na;
+         }
+@@ -2216,10 +2249,10 @@
+         if (token.kind == LBRACE) {
+             int pos = token.pos;
+             List<JCTree> defs = classOrInterfaceBody(names.empty, false);
+-            JCModifiers mods = F.at(Position.NOPOS).Modifiers(0);
+-            body = toP(F.at(pos).AnonymousClassDef(mods, defs));
++            JCModifiers mods = newAt(Position.NOPOS).Modifiers(0);
++            body = toP(newAt(pos).AnonymousClassDef(mods, defs));
+         }
+-        return toP(F.at(newpos).NewClass(encl, typeArgs, t, args, body));
++        return toP(newAt(newpos).NewClass(encl, typeArgs, t, args, body));
+     }
+ 
+     /** ArrayInitializer = "{" [VariableInitializer {"," VariableInitializer}] [","] "}"
+@@ -2238,7 +2271,7 @@
+             }
+         }
+         accept(RBRACE);
+-        return toP(F.at(newpos).NewArray(t, List.<JCExpression>nil(), elems.toList()));
++        return toP(newAt(newpos).NewArray(t, List.<JCExpression>nil(), elems.toList()));
+     }
+ 
+     /** VariableInitializer = ArrayInitializer | Expression
+@@ -2254,7 +2287,7 @@
+         accept(LPAREN);
+         JCExpression t = parseExpression();
+         accept(RPAREN);
+-        return toP(F.at(pos).Parens(t));
++        return toP(newAt(pos).Parens(t));
+     }
+ 
+     /** Block = "{" BlockStatements "}"
+@@ -2262,8 +2295,8 @@
+     JCBlock block(int pos, long flags) {
+         accept(LBRACE);
+         List<JCStatement> stats = blockStatements();
+-        JCBlock t = F.at(pos).Block(flags, stats);
+-        while (token.kind == CASE || token.kind == DEFAULT) {
++        JCBlock t = newAt(pos).Block(flags, stats);
++        while (token.kind == TokenKind.CASE || token.kind == DEFAULT) {
+             syntaxError("orphaned", token.kind);
+             switchBlockStatementGroups();
+         }
+@@ -2311,9 +2344,9 @@
+         int pos = token.pos;
+         List<JCStatement> stats = blockStatement();
+         if (stats.isEmpty()) {
+-            JCErroneous e = F.at(pos).Erroneous();
++            JCErroneous e = newAt(pos).Erroneous();
+             error(e, "illegal.start.of.stmt");
+-            return F.at(pos).Exec(e);
++            return newAt(pos).Exec(e);
+         } else {
+             JCStatement first = stats.head;
+             String error = null;
+@@ -2327,8 +2360,8 @@
+             }
+             if (error != null) {
+                 error(first, error);
+-                List<JCBlock> blist = List.of(F.at(first.pos).Block(0, stats));
+-                return toP(F.at(pos).Exec(F.at(first.pos).Erroneous(blist)));
++                List<JCBlock> blist = List.of(newAt(first.pos).Block(0, stats));
++                return toP(newAt(pos).Exec(newAt(first.pos).Erroneous(blist)));
+             }
+             return first;
+         }
+@@ -2388,11 +2421,11 @@
+             if (token.kind == COLON && t.hasTag(IDENT)) {
+                 nextToken();
+                 JCStatement stat = parseStatement();
+-                return List.<JCStatement>of(F.at(pos).Labelled(prevToken.name(), stat));
++                return List.<JCStatement>of(newAt(pos).Labelled(prevToken.name(), stat));
+             } else if ((lastmode & TYPE) != 0 && LAX_IDENTIFIER.accepts(token.kind)) {
+                 pos = token.pos;
+-                JCModifiers mods = F.at(Position.NOPOS).Modifiers(0);
+-                F.at(pos);
++                JCModifiers mods = newAt(Position.NOPOS).Modifiers(0);
++                newAt(pos);
+                 ListBuffer<JCStatement> stats =
+                         variableDeclarators(mods, t, new ListBuffer<JCStatement>());
+                 // A "LocalVariableDeclarationStatement" subsumes the terminating semicolon
+@@ -2401,7 +2434,7 @@
+                 return stats.toList();
+             } else {
+                 // This Exec is an "ExpressionStatement"; it subsumes the terminating semicolon
+-                JCExpressionStatement expr = to(F.at(pos).Exec(checkExprStat(t)));
++                JCExpressionStatement expr = to(newAt(pos).Exec(checkExprStat(t)));
+                 accept(SEMI);
+                 return List.<JCStatement>of(expr);
+             }
+@@ -2443,7 +2476,7 @@
+                 nextToken();
+                 elsepart = parseStatementAsBlock();
+             }
+-            return F.at(pos).If(cond, thenpart, elsepart);
++            return newAt(pos).If(cond, thenpart, elsepart);
+         }
+         case FOR: {
+             nextToken();
+@@ -2459,7 +2492,7 @@
+                 JCExpression expr = parseExpression();
+                 accept(RPAREN);
+                 JCStatement body = parseStatementAsBlock();
+-                return F.at(pos).ForeachLoop(var, expr, body);
++                return newAt(pos).ForeachLoop(var, expr, body);
+             } else {
+                 accept(SEMI);
+                 JCExpression cond = token.kind == SEMI ? null : parseExpression();
+@@ -2467,21 +2500,21 @@
+                 List<JCExpressionStatement> steps = token.kind == RPAREN ? List.<JCExpressionStatement>nil() : forUpdate();
+                 accept(RPAREN);
+                 JCStatement body = parseStatementAsBlock();
+-                return F.at(pos).ForLoop(inits, cond, steps, body);
++                return newAt(pos).ForLoop(inits, cond, steps, body);
+             }
+         }
+         case WHILE: {
+             nextToken();
+             JCExpression cond = parExpression();
+             JCStatement body = parseStatementAsBlock();
+-            return F.at(pos).WhileLoop(cond, body);
++            return newAt(pos).WhileLoop(cond, body);
+         }
+         case DO: {
+             nextToken();
+             JCStatement body = parseStatementAsBlock();
+             accept(WHILE);
+             JCExpression cond = parExpression();
+-            JCDoWhileLoop t = to(F.at(pos).DoLoop(body, cond));
++            JCDoWhileLoop t = to(newAt(pos).DoLoop(body, cond));
+             accept(SEMI);
+             return t;
+         }
+@@ -2510,14 +2543,14 @@
+                 } else
+                     error(pos, "try.without.catch.or.finally");
+             }
+-            return F.at(pos).Try(resources, body, catchers.toList(), finalizer);
++            return newAt(pos).Try(resources, body, catchers.toList(), finalizer);
+         }
+         case SWITCH: {
+             nextToken();
+             JCExpression selector = parExpression();
+             accept(LBRACE);
+             List<JCCase> cases = switchBlockStatementGroups();
+-            JCSwitch t = to(F.at(pos).Switch(selector, cases));
++            JCSwitch t = to(newAt(pos).Switch(selector, cases));
+             accept(RBRACE);
+             return t;
+         }
+@@ -2525,39 +2558,39 @@
+             nextToken();
+             JCExpression lock = parExpression();
+             JCBlock body = block();
+-            return F.at(pos).Synchronized(lock, body);
++            return newAt(pos).Synchronized(lock, body);
+         }
+         case RETURN: {
+             nextToken();
+             JCExpression result = token.kind == SEMI ? null : parseExpression();
+-            JCReturn t = to(F.at(pos).Return(result));
++            JCReturn t = to(newAt(pos).Return(result));
+             accept(SEMI);
+             return t;
+         }
+         case THROW: {
+             nextToken();
+             JCExpression exc = parseExpression();
+-            JCThrow t = to(F.at(pos).Throw(exc));
++            JCThrow t = to(newAt(pos).Throw(exc));
+             accept(SEMI);
+             return t;
+         }
+         case BREAK: {
+             nextToken();
+             Name label = LAX_IDENTIFIER.accepts(token.kind) ? ident() : null;
+-            JCBreak t = to(F.at(pos).Break(label));
++            JCBreak t = to(newAt(pos).Break(label));
+             accept(SEMI);
+             return t;
+         }
+         case CONTINUE: {
+             nextToken();
+             Name label = LAX_IDENTIFIER.accepts(token.kind) ? ident() : null;
+-            JCContinue t =  to(F.at(pos).Continue(label));
++            JCContinue t =  to(newAt(pos).Continue(label));
+             accept(SEMI);
+             return t;
+         }
+         case SEMI:
+             nextToken();
+-            return toP(F.at(pos).Skip());
++            return toP(newAt(pos).Skip());
+         case ELSE:
+             int elsePos = token.pos;
+             nextToken();
+@@ -2577,7 +2610,7 @@
+                     nextToken();
+                     message = parseExpression();
+                 }
+-                JCAssert t = to(F.at(pos).Assert(assertion, message));
++                JCAssert t = to(newAt(pos).Assert(assertion, message));
+                 accept(SEMI);
+                 return t;
+             }
+@@ -2590,10 +2623,10 @@
+             if (token.kind == COLON && expr.hasTag(IDENT)) {
+                 nextToken();
+                 JCStatement stat = parseStatement();
+-                return F.at(pos).Labelled(prevToken.name(), stat);
++                return newAt(pos).Labelled(prevToken.name(), stat);
+             } else {
+                 // This Exec is an "ExpressionStatement"; it subsumes the terminating semicolon
+-                JCExpressionStatement stat = to(F.at(pos).Exec(checkExprStat(expr)));
++                JCExpressionStatement stat = to(newAt(pos).Exec(checkExprStat(expr)));
+                 accept(SEMI);
+                 return stat;
+             }
+@@ -2604,7 +2637,7 @@
+         int errPos = S.errPos();
+         JCTree stm = action.doRecover(this);
+         S.errPos(errPos);
+-        return toP(F.Exec(syntaxError(startPos, List.<JCTree>of(stm), key)));
++        return toP(F.Exec(syntaxError(startPos, List.<JCTree>of(stm), key))); // to check: misstin F.at(pos). ???
+     }
+ 
+     /** CatchClause     = CATCH "(" FormalParameter ")" Block
+@@ -2617,12 +2650,12 @@
+         JCModifiers mods = optFinal(Flags.PARAMETER);
+         List<JCExpression> catchTypes = catchTypes();
+         JCExpression paramType = catchTypes.size() > 1 ?
+-                toP(F.at(catchTypes.head.getStartPosition()).TypeUnion(catchTypes)) :
++                toP(newAt(catchTypes.head.getStartPosition()).TypeUnion(catchTypes)) :
+                 catchTypes.head;
+         JCVariableDecl formal = variableDeclaratorId(mods, paramType);
+         accept(RPAREN);
+         JCBlock body = block();
+-        return F.at(pos).Catch(formal, body);
++        return newAt(pos).Catch(formal, body);
+     }
+ 
+     List<JCExpression> catchTypes() {
+@@ -2671,7 +2704,7 @@
+             JCExpression pat = parseExpression();
+             accept(COLON);
+             stats = blockStatements();
+-            c = F.at(pos).Case(pat, stats);
++            c = newAt(pos).Case(pat, stats);
+             if (stats.isEmpty())
+                 storeEnd(c, S.prevToken().endPos);
+             return c;
+@@ -2679,7 +2712,7 @@
+             nextToken();
+             accept(COLON);
+             stats = blockStatements();
+-            c = F.at(pos).Case(null, stats);
++            c = newAt(pos).Case(null, stats);
+             if (stats.isEmpty())
+                 storeEnd(c, S.prevToken().endPos);
+             return c;
+@@ -2693,13 +2726,13 @@
+                                                                     JCExpression first,
+                                                                     T stats) {
+         // This Exec is a "StatementExpression"; it subsumes no terminating token
+-        stats.append(toP(F.at(pos).Exec(checkExprStat(first))));
++        stats.append(toP(newAt(pos).Exec(checkExprStat(first))));
+         while (token.kind == COMMA) {
+             nextToken();
+             pos = token.pos;
+             JCExpression t = parseExpression();
+             // This Exec is a "StatementExpression"; it subsumes no terminating token
+-            stats.append(toP(F.at(pos).Exec(checkExprStat(t))));
++            stats.append(toP(newAt(pos).Exec(checkExprStat(t))));
+         }
+         return stats;
+     }
+@@ -2718,7 +2751,7 @@
+                 return variableDeclarators(modifiersOpt(), t, stats).toList();
+             } else if ((lastmode & TYPE) != 0 && token.kind == COLON) {
+                 error(pos, "bad.initializer", "for-loop");
+-                return List.of((JCStatement)F.at(pos).VarDef(null, null, t, null));
++                return List.of((JCStatement)newAt(pos).VarDef(null, null, t, null));
+             } else {
+                 return moreStatementExpressions(pos, t, stats).toList();
+             }
+@@ -2829,7 +2862,7 @@
+         if ((flags & (Flags.ModifierFlags | Flags.ANNOTATION)) == 0 && annotations.isEmpty())
+             pos = Position.NOPOS;
+ 
+-        JCModifiers mods = F.at(pos).Modifiers(flags, annotations.toList());
++        JCModifiers mods = newAt(pos).Modifiers(flags, annotations.toList());
+         if (pos != Position.NOPOS)
+             storeEnd(mods, S.prevToken().endPos);
+         return mods;
+@@ -2850,9 +2883,9 @@
+         List<JCExpression> fieldValues = annotationFieldValuesOpt();
+         JCAnnotation ann;
+         if (kind == Tag.ANNOTATION) {
+-            ann = F.at(pos).Annotation(ident, fieldValues);
++            ann = newAt(pos).Annotation(ident, fieldValues);
+         } else if (kind == Tag.TYPE_ANNOTATION) {
+-            ann = F.at(pos).TypeAnnotation(ident, fieldValues);
++            ann = newAt(pos).TypeAnnotation(ident, fieldValues);
+         } else {
+             throw new AssertionError("Unhandled annotation kind: " + kind);
+         }
+@@ -2891,7 +2924,7 @@
+                 int pos = token.pos;
+                 accept(EQ);
+                 JCExpression v = annotationValue();
+-                return toP(F.at(pos).Assign(t1, v));
++                return toP(newAt(pos).Assign(t1, v));
+             } else {
+                 return t1;
+             }
+@@ -2925,7 +2958,7 @@
+                 }
+             }
+             accept(RBRACE);
+-            return toP(F.at(pos).NewArray(null, List.<JCExpression>nil(), buf.toList()));
++            return toP(newAt(pos).NewArray(null, List.<JCExpression>nil(), buf.toList()));
+         default:
+             mode = EXPR;
+             return term1();
+@@ -2988,7 +3021,7 @@
+         }
+         else if (reqInit) syntaxError(token.pos, "expected", EQ);
+         JCVariableDecl result =
+-            toP(F.at(pos).VarDef(mods, name, type, init));
++            toP(newAt(pos).VarDef(mods, name, type, init));
+         attach(result, dc);
+         return result;
+     }
+@@ -3017,7 +3050,7 @@
+                     if (token.kind == LBRACKET) {
+                         log.error(token.pos, "array.and.receiver");
+                     }
+-                    return toP(F.at(pos).ReceiverVarDef(mods, pn, type));
++                    return toP(newAt(pos).ReceiverVarDef(mods, pn, type));
+                 }
+             } else {
+                 name = ident();
+@@ -3028,7 +3061,7 @@
+             log.error(token.pos, "varargs.and.old.array.syntax");
+         }
+         type = bracketsOpt(type);
+-        return toP(F.at(pos).VarDef(mods, name, type, null));
++        return toP(newAt(pos).VarDef(mods, name, type, null));
+     }
+ 
+     /** Resources = Resource { ";" Resources }
+@@ -3113,7 +3146,7 @@
+                 firstTypeDecl = false;
+             }
+         }
+-        JCTree.JCCompilationUnit toplevel = F.at(firstToken.pos).TopLevel(packageAnnotations, pid, defs.toList());
++        JCTree.JCCompilationUnit toplevel = newAt(firstToken.pos).TopLevel(packageAnnotations, pid, defs.toList());
+         if (!consumedToplevelDoc)
+             attach(toplevel, firstToken.comment(CommentStyle.JAVADOC));
+         if (defs.isEmpty())
+@@ -3138,20 +3171,20 @@
+             importStatic = true;
+             nextToken();
+         }
+-        JCExpression pid = toP(F.at(token.pos).Ident(ident()));
++        JCExpression pid = toP(newAt(token.pos).Ident(ident()));
+         do {
+             int pos1 = token.pos;
+             accept(DOT);
+             if (token.kind == STAR) {
+-                pid = to(F.at(pos1).Select(pid, names.asterisk));
++                pid = to(newAt(pos1).Select(pid, names.asterisk));
+                 nextToken();
+                 break;
+             } else {
+-                pid = toP(F.at(pos1).Select(pid, ident()));
++                pid = toP(newAt(pos1).Select(pid, ident()));
+             }
+         } while (token.kind == DOT);
+         accept(SEMI);
+-        return toP(F.at(pos).Import(pid, importStatic));
++        return toP(newAt(pos).Import(pid, importStatic));
+     }
+ 
+     /** TypeDeclaration = ClassOrInterfaceOrEnumDeclaration
+@@ -3161,7 +3194,7 @@
+         int pos = token.pos;
+         if (mods == null && token.kind == SEMI) {
+             nextToken();
+-            return toP(F.at(pos).Skip());
++            return toP(newAt(pos).Skip());
+         } else {
+             return classOrInterfaceOrEnumDeclaration(modifiersOpt(mods), docComment);
+         }
+@@ -3184,12 +3217,12 @@
+                 int pos = token.pos;
+                 List<JCTree> errs;
+                 if (LAX_IDENTIFIER.accepts(token.kind)) {
+-                    errs = List.<JCTree>of(mods, toP(F.at(pos).Ident(ident())));
++                    errs = List.<JCTree>of(mods, toP(newAt(pos).Ident(ident())));
+                     setErrorEndPos(token.pos);
+                 } else {
+                     errs = List.<JCTree>of(mods);
+                 }
+-                return toP(F.Exec(syntaxError(pos, errs, "expected3",
++                return toP(F.Exec(syntaxError(pos, errs, "expected3",  // to check: misstin F.at(pos). ??? 
+                                               CLASS, INTERFACE, ENUM)));
+             }
+         } else {
+@@ -3201,12 +3234,12 @@
+             int pos = token.pos;
+             List<JCTree> errs;
+             if (LAX_IDENTIFIER.accepts(token.kind)) {
+-                errs = List.<JCTree>of(mods, toP(F.at(pos).Ident(ident())));
++                errs = List.<JCTree>of(mods, toP(newAt(pos).Ident(ident())));
+                 setErrorEndPos(token.pos);
+             } else {
+                 errs = List.<JCTree>of(mods);
+             }
+-            return toP(F.Exec(syntaxError(pos, errs, "expected2",
++            return toP(F.Exec(syntaxError(pos, errs, "expected2",  // to check: misstin F.at(pos). ???
+                                           CLASS, INTERFACE)));
+         }
+     }
+@@ -3234,7 +3267,7 @@
+             implementing = typeList();
+         }
+         List<JCTree> defs = classOrInterfaceBody(name, false);
+-        JCClassDecl result = toP(F.at(pos).ClassDef(
++        JCClassDecl result = toP(newAt(pos).ClassDef(
+             mods, name, typarams, extending, implementing, defs));
+         attach(result, dc);
+         return result;
+@@ -3258,7 +3291,7 @@
+             extending = typeList();
+         }
+         List<JCTree> defs = classOrInterfaceBody(name, true);
+-        JCClassDecl result = toP(F.at(pos).ClassDef(
++        JCClassDecl result = toP(newAt(pos).ClassDef(
+             mods, name, typarams, null, extending, defs));
+         attach(result, dc);
+         return result;
+@@ -3281,7 +3314,7 @@
+ 
+         List<JCTree> defs = enumBody(name);
+         mods.flags |= Flags.ENUM;
+-        JCClassDecl result = toP(F.at(pos).
++        JCClassDecl result = toP(newAt(pos).
+             ClassDef(mods, name, List.<JCTypeParameter>nil(),
+                 null, implementing, defs));
+         attach(result, dc);
+@@ -3334,7 +3367,7 @@
+         }
+         int pos = token.pos;
+         List<JCAnnotation> annotations = annotationsOpt(Tag.ANNOTATION);
+-        JCModifiers mods = F.at(annotations.isEmpty() ? Position.NOPOS : pos).Modifiers(flags, annotations);
++        JCModifiers mods = newAt(annotations.isEmpty() ? Position.NOPOS : pos).Modifiers(flags, annotations);
+         List<JCExpression> typeArgs = typeArgumentsOpt();
+         int identPos = token.pos;
+         Name name = ident();
+@@ -3343,18 +3376,18 @@
+             ? arguments() : List.<JCExpression>nil();
+         JCClassDecl body = null;
+         if (token.kind == LBRACE) {
+-            JCModifiers mods1 = F.at(Position.NOPOS).Modifiers(Flags.ENUM | Flags.STATIC);
++            JCModifiers mods1 = newAt(Position.NOPOS).Modifiers(Flags.ENUM | Flags.STATIC);
+             List<JCTree> defs = classOrInterfaceBody(names.empty, false);
+-            body = toP(F.at(identPos).AnonymousClassDef(mods1, defs));
++            body = toP(newAt(identPos).AnonymousClassDef(mods1, defs));
+         }
+         if (args.isEmpty() && body == null)
+             createPos = identPos;
+-        JCIdent ident = F.at(identPos).Ident(enumName);
+-        JCNewClass create = F.at(createPos).NewClass(null, typeArgs, ident, args, body);
++        JCIdent ident = newAt(identPos).Ident(enumName);
++        JCNewClass create = newAt(createPos).NewClass(null, typeArgs, ident, args, body);
+         if (createPos != identPos)
+             storeEnd(create, S.prevToken().endPos);
+-        ident = F.at(identPos).Ident(enumName);
+-        JCTree result = toP(F.at(pos).VarDef(mods, name, ident, create));
++        ident = newAt(identPos).Ident(enumName);
++        JCTree result = toP(newAt(pos).VarDef(mods, name, ident, create));
+         attach(result, dc);
+         return result;
+     }
+@@ -3445,7 +3478,7 @@
+                 if (isVoid) {
+                     if (annosAfterParams.nonEmpty())
+                         illegal(annosAfterParams.head.pos);
+-                    type = to(F.at(pos).TypeIdent(TypeTag.VOID));
++                    type = to(newAt(pos).TypeIdent(TypeTag.VOID));
+                     nextToken();
+                 } else {
+                     if (annosAfterParams.nonEmpty()) {
+@@ -3479,7 +3512,7 @@
+                     } else {
+                         pos = token.pos;
+                         List<JCTree> err = isVoid
+-                            ? List.<JCTree>of(toP(F.at(pos).MethodDef(mods, name, type, typarams,
++                            ? List.<JCTree>of(toP(newAt(pos).MethodDef(mods, name, type, typarams,
+                                 List.<JCVariableDecl>nil(), List.<JCExpression>nil(), null, null)))
+                             : null;
+                         return List.<JCTree>of(syntaxError(token.pos, err, "expected", LPAREN));
+@@ -3544,7 +3577,7 @@
+             }
+ 
+             JCMethodDecl result =
+-                    toP(F.at(pos).MethodDef(mods, name, type, typarams,
++                    toP(newAt(pos).MethodDef(mods, name, type, typarams,
+                                             receiverParam, params, thrown,
+                                             body, defaultValue));
+             attach(result, dc);
+@@ -3624,7 +3657,7 @@
+                 bounds.append(parseType());
+             }
+         }
+-        return toP(F.at(pos).TypeParameter(name, bounds.toList(), annos));
++        return toP(newAt(pos).TypeParameter(name, bounds.toList(), annos));
+     }
+ 
+     /** FormalParameters = "(" [ FormalParameterList ] ")"
+@@ -3712,7 +3745,7 @@
+         }
+ 
+         if (createNewLevel) {
+-            mostInnerType = to(F.at(token.pos).TypeArray(mostInnerType));
++            mostInnerType = to(newAt(token.pos).TypeArray(mostInnerType));
+         }
+ 
+         JCExpression mostInnerTypeToReturn = mostInnerType;
+@@ -3731,7 +3764,7 @@
+                 }
+             }
+ 
+-            mostInnerType = F.at(annos.head.pos).AnnotatedType(annos, mostInnerType);
++            mostInnerType = newAt(annos.head.pos).AnnotatedType(annos, mostInnerType);
+ 
+             if (TreeInfo.typeIn(lastToModify).hasTag(TYPEAPPLY)) {
+                 ((JCTypeApply) TreeInfo.typeIn(lastToModify)).clazz = mostInnerType;
+@@ -3786,7 +3819,7 @@
+     }
+ 
+     protected JCVariableDecl implicitParameter() {
+-        JCModifiers mods = F.at(token.pos).Modifiers(Flags.PARAMETER);
++        JCModifiers mods = newAt(token.pos).Modifiers(Flags.PARAMETER);
+         return variableDeclaratorId(mods, null, true);
+     }
+ 
+@@ -3808,7 +3841,7 @@
+      */
+     protected JCExpression checkExprStat(JCExpression t) {
+         if (!TreeInfo.isExpressionStatement(t)) {
+-            JCExpression ret = F.at(t.pos).Erroneous(List.<JCTree>of(t));
++            JCExpression ret = newAt(t.pos).Erroneous(List.<JCTree>of(t));
+             error(ret, "not.stmt");
+             return ret;
+         } else {
+diff -r fcd768844b99 src/share/classes/com/sun/tools/javac/parser/Tokens.java
+--- a/src/share/classes/com/sun/tools/javac/parser/Tokens.java	Thu Aug 29 16:34:12 2013 -0700
++++ b/src/share/classes/com/sun/tools/javac/parser/Tokens.java	Sun Sep 01 01:31:04 2013 +0200
+@@ -30,6 +30,7 @@
+ import com.sun.tools.javac.api.Formattable;
+ import com.sun.tools.javac.api.Messages;
+ import com.sun.tools.javac.parser.Tokens.Token.Tag;
++import com.sun.tools.javac.parser.Tokens.TokenExtension.TokenExtensionKind;
+ import com.sun.tools.javac.util.List;
+ import com.sun.tools.javac.util.Name;
+ import com.sun.tools.javac.util.Context;
+@@ -227,6 +228,8 @@
+         GTGTEQ(">>="),
+         GTGTGTEQ(">>>="),
+         MONKEYS_AT("@"),
++        MONKEYS_AST_AT_START("/*@@)"), // PATCH ARN
++        MONKEYS_AST_AT_END(")@@*/"), // PATCH ARN
+         CUSTOM;
+ 
+         public final String name;
+@@ -291,7 +294,18 @@
+         }
+     }
+ 
+-    public interface Comment {
++    public interface TokenExtension {
++        int getSourcePos(int index);
++        TokenExtensionKind getTokenExtensionKind();
++        
++        enum TokenExtensionKind {
++        	COMMENT,
++        	AST_ANNOTATION
++        	// SCANNER_PRAGMA, ..
++        }
++    }
++    
++    public interface Comment extends TokenExtension {
+ 
+         enum CommentStyle {
+             LINE,
+@@ -300,11 +314,17 @@
+         }
+ 
+         String getText();
+-        int getSourcePos(int index);
+         CommentStyle getStyle();
+         boolean isDeprecated();
+     }
+ 
++    public interface AstAnnotationTokenExtension extends TokenExtension {
++    	// TODO ... or move as real grammar element!
++    	Name getAnnotationTypePrefix(); // <= use for parser to peek up by Ast type 
++    	Name getAnnotationName();
++    	String getText();  
++    }
++    
+     /**
+      * This is the class representing a javac token. Each token has several fields
+      * that are set by the javac lexer (i.e. start/end position, string value, etc).
+@@ -329,13 +349,13 @@
+         public final int endPos;
+ 
+         /** Comment reader associated with this token */
+-        public final List<Comment> comments;
++        public final List<TokenExtension> tokenExtensions;
+ 
+-        Token(TokenKind kind, int pos, int endPos, List<Comment> comments) {
++        Token(TokenKind kind, int pos, int endPos, List<TokenExtension> tokenExtensions) {
+             this.kind = kind;
+             this.pos = pos;
+             this.endPos = endPos;
+-            this.comments = comments;
++            this.tokenExtensions = tokenExtensions;
+             checkKind();
+         }
+ 
+@@ -351,7 +371,7 @@
+                 throw new AssertionError("Cant split - bad subtokens");
+             }
+             return new Token[] {
+-                new Token(t1, pos, pos + t1.name.length(), comments),
++                new Token(t1, pos, pos + t1.name.length(), tokenExtensions),
+                 new Token(t2, pos + t1.name.length(), endPos, null)
+             };
+         }
+@@ -374,6 +394,25 @@
+             throw new UnsupportedOperationException();
+         }
+ 
++
++        public List<TokenExtension> getExtensions() {
++        	return tokenExtensions;
++        }
++        
++        public List<AstAnnotationTokenExtension> getAstAnnotations() {
++            if (tokenExtensions == null) {
++                return List.nil();
++            } else {
++                ListBuffer<AstAnnotationTokenExtension> buf = ListBuffer.lb();
++                for (TokenExtension c : tokenExtensions) {
++                    if (c.getTokenExtensionKind() == TokenExtensionKind.AST_ANNOTATION) {
++                        buf.add((AstAnnotationTokenExtension) c);
++                    }
++                }
++                return buf.toList();
++            }
++        }
++        
+         /**
+          * Preserve classic semantics - if multiple javadocs are found on the token
+          * the last one is returned
+@@ -399,26 +438,30 @@
+         }
+ 
+         private List<Comment> getComments(Comment.CommentStyle style) {
+-            if (comments == null) {
++            if (tokenExtensions == null) {
+                 return List.nil();
+             } else {
+                 ListBuffer<Comment> buf = ListBuffer.lb();
+-                for (Comment c : comments) {
+-                    if (c.getStyle() == style) {
+-                        buf.add(c);
++                for (TokenExtension elt : tokenExtensions) {
++                    if (elt.getTokenExtensionKind() == TokenExtensionKind.COMMENT) {
++                    	Comment c = (Comment) elt;
++                    	if (c.getStyle() == style) {
++                    		buf.add(c);
++                    	}
+                     }
+                 }
+                 return buf.toList();
+             }
+         }
++        
+     }
+ 
+     final static class NamedToken extends Token {
+         /** The name of this token */
+         public final Name name;
+ 
+-        public NamedToken(TokenKind kind, int pos, int endPos, Name name, List<Comment> comments) {
+-            super(kind, pos, endPos, comments);
++        public NamedToken(TokenKind kind, int pos, int endPos, Name name, List<TokenExtension> tokenExtensions) {
++            super(kind, pos, endPos, tokenExtensions);
+             this.name = name;
+         }
+ 
+@@ -438,8 +481,8 @@
+         /** The string value of this token */
+         public final String stringVal;
+ 
+-        public StringToken(TokenKind kind, int pos, int endPos, String stringVal, List<Comment> comments) {
+-            super(kind, pos, endPos, comments);
++        public StringToken(TokenKind kind, int pos, int endPos, String stringVal, List<TokenExtension> tokenExtensions) {
++            super(kind, pos, endPos, tokenExtensions);
+             this.stringVal = stringVal;
+         }
+ 
+@@ -459,8 +502,8 @@
+         /** The 'radix' value of this token */
+         public final int radix;
+ 
+-        public NumericToken(TokenKind kind, int pos, int endPos, String stringVal, int radix, List<Comment> comments) {
+-            super(kind, pos, endPos, stringVal, comments);
++        public NumericToken(TokenKind kind, int pos, int endPos, String stringVal, int radix, List<TokenExtension> tokenExtensions) {
++            super(kind, pos, endPos, stringVal, tokenExtensions);
+             this.radix = radix;
+         }
+ 
+diff -r fcd768844b99 src/share/classes/com/sun/tools/javac/tree/JCTree.java
+--- a/src/share/classes/com/sun/tools/javac/tree/JCTree.java	Thu Aug 29 16:34:12 2013 -0700
++++ b/src/share/classes/com/sun/tools/javac/tree/JCTree.java	Sun Sep 01 01:31:04 2013 +0200
+@@ -42,6 +42,7 @@
+ import com.sun.tools.javac.util.*;
+ import com.sun.tools.javac.util.JCDiagnostic.DiagnosticPosition;
+ import com.sun.tools.javac.util.List;
++
+ import static com.sun.tools.javac.tree.JCTree.Tag.*;
+ 
+ /**
+@@ -85,6 +86,10 @@
+          */
+         NO_TAG,
+ 
++        /**For "@@" Ast-level annotation 
++        */
++        AST_ANNOTATION,
++
+         /** Toplevel nodes, of type TopLevel, representing entire source files.
+         */
+         TOPLEVEL,
+@@ -392,6 +397,17 @@
+      */
+     public Type type;
+ 
++    /* extension elements for AST tree... for attaching comments, or AST-level annotations
++     */
++    public List<JCTreeExtension> treeExtensions;
++    
++    
++    /* empty constructor
++     * NOTE: should be called only from TreeMaker, or transitively with subclass constructor
++     */
++    public JCTree() {
++    }
++    
+     /* The tag of this node -- one of the constants declared above.
+      */
+     public abstract Tag getTag();
+@@ -401,6 +417,26 @@
+     public boolean hasTag(Tag tag) {
+         return tag == getTag();
+     }
++    
++    /* filter by treeExtensions JCASTAnnotation kind */
++    public List<JCASTAnnotation> filterASTAnnotations() {
++        if (treeExtensions == null) return List.nil();
++        List<JCASTAnnotation> res = List.nil();
++        for(JCTreeExtension ext : treeExtensions) {
++           if (ext.getExtensionKind() == JCTreeExtensionKind.AstAnnotation) {
++               JCASTAnnotation astAnn = (JCASTAnnotation)ext;
++               res = res.append(astAnn);
++           }
++        }
++        return res;
++    }
++    
++    public void addTreeExtension(JCTreeExtension element) {
++        if (treeExtensions == null) {
++            treeExtensions = List.nil();
++        }
++        treeExtensions = treeExtensions.append(element);
++    }
+ 
+     /** Convert a tree to a pretty-printed string. */
+     @Override
+@@ -437,6 +473,27 @@
+ 
+     public abstract <R,D> R accept(TreeVisitor<R,D> v, D d);
+ 
++    /**
++     * implements com.sun.source.tree.Tree
++     * @since jdk1.8-ARN
++     */
++    @Override
++    public java.util.List<? extends ASTExtensionTree> getASTExtensions() {
++        if (treeExtensions == null) return List.nil();
++        return treeExtensions;
++    }
++
++    /**
++     * implements com.sun.source.tree.Tree
++     * @since jdk1.8-ARN
++     */
++    @SuppressWarnings("unchecked")
++    @Override
++    public java.util.List<ASTAnnotationTree> getASTAnnotations() {
++        List<JCASTAnnotation> tmp = filterASTAnnotations();
++        return (java.util.List<ASTAnnotationTree>) (List<?>) tmp;
++    }
++    
+     /** Return a shallow copy of this tree.
+      */
+     @Override
+@@ -475,6 +532,67 @@
+     }
+ 
+     /**
++     * extension element to any ASTnode JCTree
++     * @author arnaud
++     *
++     * cf attached to JCTree.treeExtensions()
++     */
++    public static abstract class JCTreeExtension extends JCExpression implements ASTExtensionTree { 
++        public abstract JCTreeExtensionKind getExtensionKind();
++    }
++    
++    public static enum JCTreeExtensionKind {
++        AstAnnotation,
++        AstComment
++    }
++    
++    /**
++     * extension for allowing annotation at AST-level  "@@(...)" 
++     */
++    public static class JCASTAnnotation extends JCTreeExtension implements ASTAnnotationTree { 
++        /** the annotation class name (simple name or qualified name) */
++        public JCTree annotationType;
++        public List<JCExpression> args;
++
++        public JCASTAnnotation(JCTree annotationType, List<JCExpression> args) {
++            super();
++            this.annotationType = annotationType;
++            this.args = args;
++        }
++
++        public JCTreeExtensionKind getExtensionKind() {
++            return JCTreeExtensionKind.AstAnnotation;
++        }
++        
++        // TODO 
++        @Override
++        public void accept(Visitor v) { 
++            v.visitASTAnnotation(this); 
++        }
++
++        public Kind getKind() { return Kind.AST_ANNOTATION; }
++        
++        public Tree getAnnotationType() {
++            return annotationType;
++        }
++
++        public List<JCExpression> getArguments() {
++            return args;
++        }
++
++        @Override
++        public <R,D> R accept(TreeVisitor<R,D> v, D d) {
++            return v.visitASTAnnotation(this, d);
++        }
++
++        @Override
++        public Tag getTag() {
++            return AST_ANNOTATION;
++        }
++
++    }
++
++    /**
+      * Everything in one source file is kept in a {@linkplain JCCompilationUnit} structure.
+      */
+     public static class JCCompilationUnit extends JCTree implements CompilationUnitTree {
+@@ -2517,6 +2635,9 @@
+     /** A generic visitor class for trees.
+      */
+     public static abstract class Visitor {
++        /** @since 1.9-ARN */
++        public void visitASTAnnotation(JCASTAnnotation that)    { visitTree(that); }
++        
+         public void visitTopLevel(JCCompilationUnit that)    { visitTree(that); }
+         public void visitImport(JCImport that)               { visitTree(that); }
+         public void visitClassDef(JCClassDecl that)          { visitTree(that); }
+diff -r fcd768844b99 src/share/classes/com/sun/tools/javac/tree/TreeCopier.java
+--- a/src/share/classes/com/sun/tools/javac/tree/TreeCopier.java	Thu Aug 29 16:34:12 2013 -0700
++++ b/src/share/classes/com/sun/tools/javac/tree/TreeCopier.java	Sun Sep 01 01:31:04 2013 +0200
+@@ -71,11 +71,23 @@
+         return lb.toList();
+     }
+ 
++    private TreeMaker newAt(JCTree t) {
++    	return M .at(t.pos);
++    }
++
++    public JCTree visitASTAnnotation(ASTAnnotationTree node, P p) {
++        JCASTAnnotation t = (JCASTAnnotation) node;
++        JCTree annotationType = copy(t.annotationType, p);
++        List<JCExpression> args = copy(t.args, p);
++        JCASTAnnotation newTA = newAt(t).ASTAnnotation(annotationType, args);
++        return newTA;
++    }
++
+     public JCTree visitAnnotatedType(AnnotatedTypeTree node, P p) {
+         JCAnnotatedType t = (JCAnnotatedType) node;
+         List<JCAnnotation> annotations = copy(t.annotations, p);
+         JCExpression underlyingType = copy(t.underlyingType, p);
+-        return M.at(t.pos).AnnotatedType(annotations, underlyingType);
++        return newAt(t).AnnotatedType(annotations, underlyingType);
+     }
+ 
+     public JCTree visitAnnotation(AnnotationTree node, P p) {
+@@ -83,11 +95,11 @@
+         JCTree annotationType = copy(t.annotationType, p);
+         List<JCExpression> args = copy(t.args, p);
+         if (t.getKind() == Tree.Kind.TYPE_ANNOTATION) {
+-            JCAnnotation newTA = M.at(t.pos).TypeAnnotation(annotationType, args);
++            JCAnnotation newTA = newAt(t).TypeAnnotation(annotationType, args);
+             newTA.attribute = t.attribute;
+             return newTA;
+         } else {
+-            JCAnnotation newT = M.at(t.pos).Annotation(annotationType, args);
++            JCAnnotation newT = newAt(t).Annotation(annotationType, args);
+             newT.attribute = t.attribute;
+             return newT;
+         }
+@@ -97,53 +109,53 @@
+         JCAssert t = (JCAssert) node;
+         JCExpression cond = copy(t.cond, p);
+         JCExpression detail = copy(t.detail, p);
+-        return M.at(t.pos).Assert(cond, detail);
++        return newAt(t).Assert(cond, detail);
+     }
+ 
+     public JCTree visitAssignment(AssignmentTree node, P p) {
+         JCAssign t = (JCAssign) node;
+         JCExpression lhs = copy(t.lhs, p);
+         JCExpression rhs = copy(t.rhs, p);
+-        return M.at(t.pos).Assign(lhs, rhs);
++        return newAt(t).Assign(lhs, rhs);
+     }
+ 
+     public JCTree visitCompoundAssignment(CompoundAssignmentTree node, P p) {
+         JCAssignOp t = (JCAssignOp) node;
+         JCTree lhs = copy(t.lhs, p);
+         JCTree rhs = copy(t.rhs, p);
+-        return M.at(t.pos).Assignop(t.getTag(), lhs, rhs);
++        return newAt(t).Assignop(t.getTag(), lhs, rhs);
+     }
+ 
+     public JCTree visitBinary(BinaryTree node, P p) {
+         JCBinary t = (JCBinary) node;
+         JCExpression lhs = copy(t.lhs, p);
+         JCExpression rhs = copy(t.rhs, p);
+-        return M.at(t.pos).Binary(t.getTag(), lhs, rhs);
++        return newAt(t).Binary(t.getTag(), lhs, rhs);
+     }
+ 
+     public JCTree visitBlock(BlockTree node, P p) {
+         JCBlock t = (JCBlock) node;
+         List<JCStatement> stats = copy(t.stats, p);
+-        return M.at(t.pos).Block(t.flags, stats);
++        return newAt(t).Block(t.flags, stats);
+     }
+ 
+     public JCTree visitBreak(BreakTree node, P p) {
+         JCBreak t = (JCBreak) node;
+-        return M.at(t.pos).Break(t.label);
++        return newAt(t).Break(t.label);
+     }
+ 
+     public JCTree visitCase(CaseTree node, P p) {
+         JCCase t = (JCCase) node;
+         JCExpression pat = copy(t.pat, p);
+         List<JCStatement> stats = copy(t.stats, p);
+-        return M.at(t.pos).Case(pat, stats);
++        return newAt(t).Case(pat, stats);
+     }
+ 
+     public JCTree visitCatch(CatchTree node, P p) {
+         JCCatch t = (JCCatch) node;
+         JCVariableDecl param = copy(t.param, p);
+         JCBlock body = copy(t.body, p);
+-        return M.at(t.pos).Catch(param, body);
++        return newAt(t).Catch(param, body);
+     }
+ 
+     public JCTree visitClass(ClassTree node, P p) {
+@@ -153,7 +165,7 @@
+         JCExpression extending = copy(t.extending, p);
+         List<JCExpression> implementing = copy(t.implementing, p);
+         List<JCTree> defs = copy(t.defs, p);
+-        return M.at(t.pos).ClassDef(mods, t.name, typarams, extending, implementing, defs);
++        return newAt(t).ClassDef(mods, t.name, typarams, extending, implementing, defs);
+     }
+ 
+     public JCTree visitConditionalExpression(ConditionalExpressionTree node, P p) {
+@@ -161,31 +173,31 @@
+         JCExpression cond = copy(t.cond, p);
+         JCExpression truepart = copy(t.truepart, p);
+         JCExpression falsepart = copy(t.falsepart, p);
+-        return M.at(t.pos).Conditional(cond, truepart, falsepart);
++        return newAt(t).Conditional(cond, truepart, falsepart);
+     }
+ 
+     public JCTree visitContinue(ContinueTree node, P p) {
+         JCContinue t = (JCContinue) node;
+-        return M.at(t.pos).Continue(t.label);
++        return newAt(t).Continue(t.label);
+     }
+ 
+     public JCTree visitDoWhileLoop(DoWhileLoopTree node, P p) {
+         JCDoWhileLoop t = (JCDoWhileLoop) node;
+         JCStatement body = copy(t.body, p);
+         JCExpression cond = copy(t.cond, p);
+-        return M.at(t.pos).DoLoop(body, cond);
++        return newAt(t).DoLoop(body, cond);
+     }
+ 
+     public JCTree visitErroneous(ErroneousTree node, P p) {
+         JCErroneous t = (JCErroneous) node;
+         List<? extends JCTree> errs = copy(t.errs, p);
+-        return M.at(t.pos).Erroneous(errs);
++        return newAt(t).Erroneous(errs);
+     }
+ 
+     public JCTree visitExpressionStatement(ExpressionStatementTree node, P p) {
+         JCExpressionStatement t = (JCExpressionStatement) node;
+         JCExpression expr = copy(t.expr, p);
+-        return M.at(t.pos).Exec(expr);
++        return newAt(t).Exec(expr);
+     }
+ 
+     public JCTree visitEnhancedForLoop(EnhancedForLoopTree node, P p) {
+@@ -193,7 +205,7 @@
+         JCVariableDecl var = copy(t.var, p);
+         JCExpression expr = copy(t.expr, p);
+         JCStatement body = copy(t.body, p);
+-        return M.at(t.pos).ForeachLoop(var, expr, body);
++        return newAt(t).ForeachLoop(var, expr, body);
+     }
+ 
+     public JCTree visitForLoop(ForLoopTree node, P p) {
+@@ -202,12 +214,12 @@
+         JCExpression cond = copy(t.cond, p);
+         List<JCExpressionStatement> step = copy(t.step, p);
+         JCStatement body = copy(t.body, p);
+-        return M.at(t.pos).ForLoop(init, cond, step, body);
++        return newAt(t).ForLoop(init, cond, step, body);
+     }
+ 
+     public JCTree visitIdentifier(IdentifierTree node, P p) {
+         JCIdent t = (JCIdent) node;
+-        return M.at(t.pos).Ident(t.name);
++        return newAt(t).Ident(t.name);
+     }
+ 
+     public JCTree visitIf(IfTree node, P p) {
+@@ -215,31 +227,31 @@
+         JCExpression cond = copy(t.cond, p);
+         JCStatement thenpart = copy(t.thenpart, p);
+         JCStatement elsepart = copy(t.elsepart, p);
+-        return M.at(t.pos).If(cond, thenpart, elsepart);
++        return newAt(t).If(cond, thenpart, elsepart);
+     }
+ 
+     public JCTree visitImport(ImportTree node, P p) {
+         JCImport t = (JCImport) node;
+         JCTree qualid = copy(t.qualid, p);
+-        return M.at(t.pos).Import(qualid, t.staticImport);
++        return newAt(t).Import(qualid, t.staticImport);
+     }
+ 
+     public JCTree visitArrayAccess(ArrayAccessTree node, P p) {
+         JCArrayAccess t = (JCArrayAccess) node;
+         JCExpression indexed = copy(t.indexed, p);
+         JCExpression index = copy(t.index, p);
+-        return M.at(t.pos).Indexed(indexed, index);
++        return newAt(t).Indexed(indexed, index);
+     }
+ 
+     public JCTree visitLabeledStatement(LabeledStatementTree node, P p) {
+         JCLabeledStatement t = (JCLabeledStatement) node;
+         JCStatement body = copy(t.body, p);
+-        return M.at(t.pos).Labelled(t.label, t.body);
++        return newAt(t).Labelled(t.label, t.body);
+     }
+ 
+     public JCTree visitLiteral(LiteralTree node, P p) {
+         JCLiteral t = (JCLiteral) node;
+-        return M.at(t.pos).Literal(t.typetag, t.value);
++        return newAt(t).Literal(t.typetag, t.value);
+     }
+ 
+     public JCTree visitMethod(MethodTree node, P p) {
+@@ -252,7 +264,7 @@
+         List<JCExpression> thrown = copy(t.thrown, p);
+         JCBlock body = copy(t.body, p);
+         JCExpression defaultValue = copy(t.defaultValue, p);
+-        return M.at(t.pos).MethodDef(mods, t.name, restype, typarams, recvparam, params, thrown, body, defaultValue);
++        return newAt(t).MethodDef(mods, t.name, restype, typarams, recvparam, params, thrown, body, defaultValue);
+     }
+ 
+     public JCTree visitMethodInvocation(MethodInvocationTree node, P p) {
+@@ -260,13 +272,13 @@
+         List<JCExpression> typeargs = copy(t.typeargs, p);
+         JCExpression meth = copy(t.meth, p);
+         List<JCExpression> args = copy(t.args, p);
+-        return M.at(t.pos).Apply(typeargs, meth, args);
++        return newAt(t).Apply(typeargs, meth, args);
+     }
+ 
+     public JCTree visitModifiers(ModifiersTree node, P p) {
+         JCModifiers t = (JCModifiers) node;
+         List<JCAnnotation> annotations = copy(t.annotations, p);
+-        return M.at(t.pos).Modifiers(t.flags, annotations);
++        return newAt(t).Modifiers(t.flags, annotations);
+     }
+ 
+     public JCTree visitNewArray(NewArrayTree node, P p) {
+@@ -274,7 +286,7 @@
+         JCExpression elemtype = copy(t.elemtype, p);
+         List<JCExpression> dims = copy(t.dims, p);
+         List<JCExpression> elems = copy(t.elems, p);
+-        return M.at(t.pos).NewArray(elemtype, dims, elems);
++        return newAt(t).NewArray(elemtype, dims, elems);
+     }
+ 
+     public JCTree visitNewClass(NewClassTree node, P p) {
+@@ -284,64 +296,64 @@
+         JCExpression clazz = copy(t.clazz, p);
+         List<JCExpression> args = copy(t.args, p);
+         JCClassDecl def = copy(t.def, p);
+-        return M.at(t.pos).NewClass(encl, typeargs, clazz, args, def);
++        return newAt(t).NewClass(encl, typeargs, clazz, args, def);
+     }
+ 
+     public JCTree visitLambdaExpression(LambdaExpressionTree node, P p) {
+         JCLambda t = (JCLambda) node;
+         List<JCVariableDecl> params = copy(t.params, p);
+         JCTree body = copy(t.body, p);
+-        return M.at(t.pos).Lambda(params, body);
++        return newAt(t).Lambda(params, body);
+     }
+ 
+     public JCTree visitParenthesized(ParenthesizedTree node, P p) {
+         JCParens t = (JCParens) node;
+         JCExpression expr = copy(t.expr, p);
+-        return M.at(t.pos).Parens(expr);
++        return newAt(t).Parens(expr);
+     }
+ 
+     public JCTree visitReturn(ReturnTree node, P p) {
+         JCReturn t = (JCReturn) node;
+         JCExpression expr = copy(t.expr, p);
+-        return M.at(t.pos).Return(expr);
++        return newAt(t).Return(expr);
+     }
+ 
+     public JCTree visitMemberSelect(MemberSelectTree node, P p) {
+         JCFieldAccess t = (JCFieldAccess) node;
+         JCExpression selected = copy(t.selected, p);
+-        return M.at(t.pos).Select(selected, t.name);
++        return newAt(t).Select(selected, t.name);
+     }
+ 
+     public JCTree visitMemberReference(MemberReferenceTree node, P p) {
+         JCMemberReference t = (JCMemberReference) node;
+         JCExpression expr = copy(t.expr, p);
+         List<JCExpression> typeargs = copy(t.typeargs, p);
+-        return M.at(t.pos).Reference(t.mode, t.name, expr, typeargs);
++        return newAt(t).Reference(t.mode, t.name, expr, typeargs);
+     }
+ 
+     public JCTree visitEmptyStatement(EmptyStatementTree node, P p) {
+         JCSkip t = (JCSkip) node;
+-        return M.at(t.pos).Skip();
++        return newAt(t).Skip();
+     }
+ 
+     public JCTree visitSwitch(SwitchTree node, P p) {
+         JCSwitch t = (JCSwitch) node;
+         JCExpression selector = copy(t.selector, p);
+         List<JCCase> cases = copy(t.cases, p);
+-        return M.at(t.pos).Switch(selector, cases);
++        return newAt(t).Switch(selector, cases);
+     }
+ 
+     public JCTree visitSynchronized(SynchronizedTree node, P p) {
+         JCSynchronized t = (JCSynchronized) node;
+         JCExpression lock = copy(t.lock, p);
+         JCBlock body = copy(t.body, p);
+-        return M.at(t.pos).Synchronized(lock, body);
++        return newAt(t).Synchronized(lock, body);
+     }
+ 
+     public JCTree visitThrow(ThrowTree node, P p) {
+         JCThrow t = (JCThrow) node;
+         JCExpression expr = copy(t.expr, p);
+-        return M.at(t.pos).Throw(expr);
++        return newAt(t).Throw(expr);
+     }
+ 
+     public JCTree visitCompilationUnit(CompilationUnitTree node, P p) {
+@@ -349,7 +361,7 @@
+         List<JCAnnotation> packageAnnotations = copy(t.packageAnnotations, p);
+         JCExpression pid = copy(t.pid, p);
+         List<JCTree> defs = copy(t.defs, p);
+-        return M.at(t.pos).TopLevel(packageAnnotations, pid, defs);
++        return newAt(t).TopLevel(packageAnnotations, pid, defs);
+     }
+ 
+     public JCTree visitTry(TryTree node, P p) {
+@@ -358,64 +370,64 @@
+         JCBlock body = copy(t.body, p);
+         List<JCCatch> catchers = copy(t.catchers, p);
+         JCBlock finalizer = copy(t.finalizer, p);
+-        return M.at(t.pos).Try(resources, body, catchers, finalizer);
++        return newAt(t).Try(resources, body, catchers, finalizer);
+     }
+ 
+     public JCTree visitParameterizedType(ParameterizedTypeTree node, P p) {
+         JCTypeApply t = (JCTypeApply) node;
+         JCExpression clazz = copy(t.clazz, p);
+         List<JCExpression> arguments = copy(t.arguments, p);
+-        return M.at(t.pos).TypeApply(clazz, arguments);
++        return newAt(t).TypeApply(clazz, arguments);
+     }
+ 
+     public JCTree visitUnionType(UnionTypeTree node, P p) {
+         JCTypeUnion t = (JCTypeUnion) node;
+         List<JCExpression> components = copy(t.alternatives, p);
+-        return M.at(t.pos).TypeUnion(components);
++        return newAt(t).TypeUnion(components);
+     }
+ 
+     public JCTree visitIntersectionType(IntersectionTypeTree node, P p) {
+         JCTypeIntersection t = (JCTypeIntersection) node;
+         List<JCExpression> bounds = copy(t.bounds, p);
+-        return M.at(t.pos).TypeIntersection(bounds);
++        return newAt(t).TypeIntersection(bounds);
+     }
+ 
+     public JCTree visitArrayType(ArrayTypeTree node, P p) {
+         JCArrayTypeTree t = (JCArrayTypeTree) node;
+         JCExpression elemtype = copy(t.elemtype, p);
+-        return M.at(t.pos).TypeArray(elemtype);
++        return newAt(t).TypeArray(elemtype);
+     }
+ 
+     public JCTree visitTypeCast(TypeCastTree node, P p) {
+         JCTypeCast t = (JCTypeCast) node;
+         JCTree clazz = copy(t.clazz, p);
+         JCExpression expr = copy(t.expr, p);
+-        return M.at(t.pos).TypeCast(clazz, expr);
++        return newAt(t).TypeCast(clazz, expr);
+     }
+ 
+     public JCTree visitPrimitiveType(PrimitiveTypeTree node, P p) {
+         JCPrimitiveTypeTree t = (JCPrimitiveTypeTree) node;
+-        return M.at(t.pos).TypeIdent(t.typetag);
++        return newAt(t).TypeIdent(t.typetag);
+     }
+ 
+     public JCTree visitTypeParameter(TypeParameterTree node, P p) {
+         JCTypeParameter t = (JCTypeParameter) node;
+         List<JCAnnotation> annos = copy(t.annotations, p);
+         List<JCExpression> bounds = copy(t.bounds, p);
+-        return M.at(t.pos).TypeParameter(t.name, bounds, annos);
++        return newAt(t).TypeParameter(t.name, bounds, annos);
+     }
+ 
+     public JCTree visitInstanceOf(InstanceOfTree node, P p) {
+         JCInstanceOf t = (JCInstanceOf) node;
+         JCExpression expr = copy(t.expr, p);
+         JCTree clazz = copy(t.clazz, p);
+-        return M.at(t.pos).TypeTest(expr, clazz);
++        return newAt(t).TypeTest(expr, clazz);
+     }
+ 
+     public JCTree visitUnary(UnaryTree node, P p) {
+         JCUnary t = (JCUnary) node;
+         JCExpression arg = copy(t.arg, p);
+-        return M.at(t.pos).Unary(t.getTag(), arg);
++        return newAt(t).Unary(t.getTag(), arg);
+     }
+ 
+     public JCTree visitVariable(VariableTree node, P p) {
+@@ -424,10 +436,10 @@
+         JCExpression vartype = copy(t.vartype, p);
+         if (t.nameexpr == null) {
+             JCExpression init = copy(t.init, p);
+-            return M.at(t.pos).VarDef(mods, t.name, vartype, init);
++            return newAt(t).VarDef(mods, t.name, vartype, init);
+         } else {
+             JCExpression nameexpr = copy(t.nameexpr, p);
+-            return M.at(t.pos).ReceiverVarDef(mods, nameexpr, vartype);
++            return newAt(t).ReceiverVarDef(mods, nameexpr, vartype);
+         }
+     }
+ 
+@@ -435,14 +447,14 @@
+         JCWhileLoop t = (JCWhileLoop) node;
+         JCStatement body = copy(t.body, p);
+         JCExpression cond = copy(t.cond, p);
+-        return M.at(t.pos).WhileLoop(cond, body);
++        return newAt(t).WhileLoop(cond, body);
+     }
+ 
+     public JCTree visitWildcard(WildcardTree node, P p) {
+         JCWildcard t = (JCWildcard) node;
+         TypeBoundKind kind = M.at(t.kind.pos).TypeBoundKind(t.kind.kind);
+         JCTree inner = copy(t.inner, p);
+-        return M.at(t.pos).Wildcard(kind, inner);
++        return newAt(t).Wildcard(kind, inner);
+     }
+ 
+     public JCTree visitOther(Tree node, P p) {
+@@ -452,7 +464,7 @@
+                 LetExpr t = (LetExpr) node;
+                 List<JCVariableDecl> defs = copy(t.defs, p);
+                 JCTree expr = copy(t.expr, p);
+-                return M.at(t.pos).LetExpr(defs, expr);
++                return newAt(t).LetExpr(defs, expr);
+             }
+             default:
+                 throw new AssertionError("unknown tree tag: " + tree.getTag());
+diff -r fcd768844b99 src/share/classes/com/sun/tools/javac/tree/TreeMaker.java
+--- a/src/share/classes/com/sun/tools/javac/tree/TreeMaker.java	Thu Aug 29 16:34:12 2013 -0700
++++ b/src/share/classes/com/sun/tools/javac/tree/TreeMaker.java	Sun Sep 01 01:31:04 2013 +0200
+@@ -25,17 +25,113 @@
+ 
+ package com.sun.tools.javac.tree;
+ 
+-import com.sun.tools.javac.code.*;
+-import com.sun.tools.javac.code.Symbol.*;
+-import com.sun.tools.javac.code.Type.*;
+-import com.sun.tools.javac.util.*;
++import static com.sun.tools.javac.code.Flags.FINAL;
++import static com.sun.tools.javac.code.Flags.PUBLIC;
++import static com.sun.tools.javac.code.Flags.STATIC;
++import static com.sun.tools.javac.code.Kinds.MTH;
++import static com.sun.tools.javac.code.Kinds.TYP;
++import static com.sun.tools.javac.code.Kinds.VAR;
++import static com.sun.tools.javac.code.TypeTag.BOOLEAN;
++import static com.sun.tools.javac.code.TypeTag.BYTE;
++import static com.sun.tools.javac.code.TypeTag.CHAR;
++import static com.sun.tools.javac.code.TypeTag.CLASS;
++import static com.sun.tools.javac.code.TypeTag.DOUBLE;
++import static com.sun.tools.javac.code.TypeTag.ERROR;
++import static com.sun.tools.javac.code.TypeTag.FLOAT;
++import static com.sun.tools.javac.code.TypeTag.INT;
++import static com.sun.tools.javac.code.TypeTag.LONG;
++import static com.sun.tools.javac.code.TypeTag.SHORT;
++import static com.sun.tools.javac.code.TypeTag.VOID;
++
++import com.sun.source.tree.Tree.Kind;
++import com.sun.tools.javac.code.Attribute;
++import com.sun.tools.javac.code.BoundKind;
++import com.sun.tools.javac.code.Flags;
++import com.sun.tools.javac.code.Scope;
++import com.sun.tools.javac.code.Symbol;
++import com.sun.tools.javac.code.Symbol.ClassSymbol;
++import com.sun.tools.javac.code.Symbol.MethodSymbol;
++import com.sun.tools.javac.code.Symbol.TypeSymbol;
++import com.sun.tools.javac.code.Symbol.VarSymbol;
++import com.sun.tools.javac.code.Symtab;
++import com.sun.tools.javac.code.Type;
++import com.sun.tools.javac.code.Type.ArrayType;
++import com.sun.tools.javac.code.Type.TypeVar;
++import com.sun.tools.javac.code.Type.WildcardType;
++import com.sun.tools.javac.code.TypeTag;
++import com.sun.tools.javac.code.Types;
++import com.sun.tools.javac.parser.Tokens.Token;
++import com.sun.tools.javac.parser.Tokens.TokenExtension;
++import com.sun.tools.javac.tree.JCTree.JCAnnotatedType;
++import com.sun.tools.javac.tree.JCTree.JCAnnotation;
++import com.sun.tools.javac.tree.JCTree.JCArrayAccess;
++import com.sun.tools.javac.tree.JCTree.JCArrayTypeTree;
++import com.sun.tools.javac.tree.JCTree.JCAssert;
++import com.sun.tools.javac.tree.JCTree.JCAssign;
++import com.sun.tools.javac.tree.JCTree.JCAssignOp;
++import com.sun.tools.javac.tree.JCTree.JCASTAnnotation;
++import com.sun.tools.javac.tree.JCTree.JCBinary;
++import com.sun.tools.javac.tree.JCTree.JCBlock;
++import com.sun.tools.javac.tree.JCTree.JCBreak;
++import com.sun.tools.javac.tree.JCTree.JCCase;
++import com.sun.tools.javac.tree.JCTree.JCCatch;
++import com.sun.tools.javac.tree.JCTree.JCClassDecl;
++import com.sun.tools.javac.tree.JCTree.JCCompilationUnit;
++import com.sun.tools.javac.tree.JCTree.JCConditional;
++import com.sun.tools.javac.tree.JCTree.JCContinue;
++import com.sun.tools.javac.tree.JCTree.JCDoWhileLoop;
++import com.sun.tools.javac.tree.JCTree.JCEnhancedForLoop;
++import com.sun.tools.javac.tree.JCTree.JCErroneous;
++import com.sun.tools.javac.tree.JCTree.JCExpression;
++import com.sun.tools.javac.tree.JCTree.JCExpressionStatement;
++import com.sun.tools.javac.tree.JCTree.JCFieldAccess;
++import com.sun.tools.javac.tree.JCTree.JCForLoop;
++import com.sun.tools.javac.tree.JCTree.JCIdent;
++import com.sun.tools.javac.tree.JCTree.JCIf;
++import com.sun.tools.javac.tree.JCTree.JCImport;
++import com.sun.tools.javac.tree.JCTree.JCInstanceOf;
++import com.sun.tools.javac.tree.JCTree.JCLabeledStatement;
++import com.sun.tools.javac.tree.JCTree.JCLambda;
++import com.sun.tools.javac.tree.JCTree.JCLiteral;
++import com.sun.tools.javac.tree.JCTree.JCMemberReference;
++import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
++import com.sun.tools.javac.tree.JCTree.JCMethodInvocation;
++import com.sun.tools.javac.tree.JCTree.JCModifiers;
++import com.sun.tools.javac.tree.JCTree.JCNewArray;
++import com.sun.tools.javac.tree.JCTree.JCNewClass;
++import com.sun.tools.javac.tree.JCTree.JCParens;
++import com.sun.tools.javac.tree.JCTree.JCPrimitiveTypeTree;
++import com.sun.tools.javac.tree.JCTree.JCReturn;
++import com.sun.tools.javac.tree.JCTree.JCSkip;
++import com.sun.tools.javac.tree.JCTree.JCStatement;
++import com.sun.tools.javac.tree.JCTree.JCSwitch;
++import com.sun.tools.javac.tree.JCTree.JCSynchronized;
++import com.sun.tools.javac.tree.JCTree.JCThrow;
++import com.sun.tools.javac.tree.JCTree.JCTry;
++import com.sun.tools.javac.tree.JCTree.JCTypeApply;
++import com.sun.tools.javac.tree.JCTree.JCTypeCast;
++import com.sun.tools.javac.tree.JCTree.JCTypeIntersection;
++import com.sun.tools.javac.tree.JCTree.JCTypeParameter;
++import com.sun.tools.javac.tree.JCTree.JCTypeUnion;
++import com.sun.tools.javac.tree.JCTree.JCUnary;
++import com.sun.tools.javac.tree.JCTree.JCVariableDecl;
++import com.sun.tools.javac.tree.JCTree.JCWhileLoop;
++import com.sun.tools.javac.tree.JCTree.JCWildcard;
++import com.sun.tools.javac.tree.JCTree.LetExpr;
++import com.sun.tools.javac.tree.JCTree.Tag;
++import com.sun.tools.javac.tree.JCTree.TypeBoundKind;
++import com.sun.tools.javac.util.Assert;
++import com.sun.tools.javac.util.Context;
+ import com.sun.tools.javac.util.JCDiagnostic.DiagnosticPosition;
++import com.sun.tools.javac.util.List;
++import com.sun.tools.javac.util.ListBuffer;
++import com.sun.tools.javac.util.Name;
++import com.sun.tools.javac.util.Names;
++import com.sun.tools.javac.util.Pair;
++import com.sun.tools.javac.util.Position;
+ 
+-import com.sun.tools.javac.tree.JCTree.*;
++import com.sun.tools.javac.parser.Tokens.AstAnnotationTokenExtension;
+ 
+-import static com.sun.tools.javac.code.Flags.*;
+-import static com.sun.tools.javac.code.Kinds.*;
+-import static com.sun.tools.javac.code.TypeTag.*;
+ 
+ /** Factory class for trees.
+  *
+@@ -60,8 +156,24 @@
+ 
+     /** The position at which subsequent trees will be created.
+      */
+-    public int pos = Position.NOPOS;
++    private int pos = Position.NOPOS;
+ 
++    
++    /**
++     * contains both comments and AST-level annotations
++     * ==> to push and transform into List<JCTreeExtension>, then peek by prefix name
++     * example:
++     * @@Annotation1 lhs = rhs;  ... this is ambiguous!  annotation goes to lhs AST node, or assignement?
++     * when not specified => annotation is consumed on the first found AST whle parsing!
++     * ==> can attach annotation on a sub AST node, by using "@@prefix:"
++     * @@Lhs:Annotation1 @@Assign:Annotation2 lhs = rhs;
++     * 
++     */
++    private List<TokenExtension> pushedTokenExtensionsReverseStack = List.nil();
++    private Token lastPushTokenExtension;
++    private int lastPushedTokenPos;
++    
++    
+     /** The toplevel tree to which created trees belong.
+      */
+     public JCCompilationUnit toplevel;
+@@ -101,6 +213,12 @@
+         return new TreeMaker(toplevel, names, types, syms);
+     }
+ 
++    /** @return the current position
++     */
++    public int getPos() {
++        return pos;
++    }
++
+     /** Reassign current position.
+      */
+     public TreeMaker at(int pos) {
+@@ -108,6 +226,14 @@
+         return this;
+     }
+ 
++    /** Reassign current position... used by Parser to preserve position + comments + AST-level annotations while building AST !!
++     * replacement for at(pos) !!
++     */
++    public TreeMaker newAt(int pos) {
++        this.pos = pos;
++        return this;
++    }
++    
+     /** Reassign current position.
+      */
+     public TreeMaker at(DiagnosticPosition pos) {
+@@ -115,6 +241,66 @@
+         return this;
+     }
+ 
++
++    public void pushTokenExtensions(Token token) {
++        this.lastPushTokenExtension = token;
++        this.lastPushedTokenPos = token.pos;
++
++        List<TokenExtension> extensions = token.getExtensions();
++        if (extensions != null && !extensions.isEmpty()) {
++            pushedTokenExtensionsReverseStack = pushedTokenExtensionsReverseStack.prependList(extensions); // push elts on top of (reversed)stack = prepend
++        }
++    }
++    
++    protected void fillTreeInfo(JCTree tree) {
++        tree.pos = pos;
++        if (pushedTokenExtensionsReverseStack != null && !pushedTokenExtensionsReverseStack.isEmpty()) {
++            Kind treeKind = tree.getKind();
++            
++            // loop and consume pushed tokenExtensions, create corresponding JCTree info
++            // consume from top of (reversed)stack => head first!
++            List<TokenExtension> remainingList = pushedTokenExtensionsReverseStack;
++            for (List<TokenExtension> l = pushedTokenExtensionsReverseStack; l.tail != null; l = l.tail) { // List.iterator() does not support remove()...
++                TokenExtension tokenExt = l.head;
++                switch(tokenExt.getTokenExtensionKind()) {
++                case COMMENT:
++                    // TODO ... comment not used yet in JCTree AST (only in Class,Field,Method..)! ... ignore them
++                    // tree.addTreeExtension(treeComment);
++                    break;
++                    
++                case AST_ANNOTATION:
++                    AstAnnotationTokenExtension tokenAnnotation = (AstAnnotationTokenExtension) tokenExt;
++                    Name annotationTypePrefix = tokenAnnotation.getAnnotationTypePrefix();
++                    if (annotationTypePrefix != null) {
++                        // check if prefix match expected tree.Tag ... otherwise stop consuming from stack!
++                        String prefixAsString = annotationTypePrefix.toString();
++                        if (!treeKind.acceptPrefixIgnoreCase(prefixAsString)) {
++                            break; // no match.. this token extension should be consumed later! 
++                            // warning: when pushing 1 invalid prefix... the stack is filled and no more consumed ... there is push() but no pop() to check for synchronisation 
++                        }
++                    }
++                    
++                    // handle AstAnnotationTokenExtension, transform it to JCTree annotation
++                    // TODO ... cf similar code in JavacParser.annotation() for parsing JCAnnotation!
++                    Name annotationName = tokenAnnotation.getAnnotationName();
++                    JCTree annotationType = new JCIdent(annotationName, null); // TODO cf JavacParser.qualident(); 
++                    // ... do not call this.Ident(annotationName) as it would cause StackOverflow
++                    annotationType.pos = pos;
++                    
++                    List<JCExpression> annotationArgs = List.nil(); // TODO cf JavacParser
++                    
++                    JCASTAnnotation treeAnnotation = new JCASTAnnotation(annotationType, annotationArgs);
++                    tree.addTreeExtension(treeAnnotation);
++                    
++                    break;
++                }
++                remainingList = l.tail; // idem pop() from (reversed)stack : remove head 
++            }
++            this.pushedTokenExtensionsReverseStack = remainingList;
++        }
++    }
++    
++    
+     /**
+      * Create given tree node at current position.
+      * @param defs a list of ClassDef, Import, and Skip
+@@ -133,13 +319,13 @@
+                 node.getClass().getSimpleName());
+         JCCompilationUnit tree = new JCCompilationUnit(packageAnnotations, pid, defs,
+                                      null, null, null, null);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCImport Import(JCTree qualid, boolean importStatic) {
+         JCImport tree = new JCImport(qualid, importStatic);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+@@ -157,7 +343,7 @@
+                                      implementing,
+                                      defs,
+                                      null);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+@@ -194,43 +380,43 @@
+                                        body,
+                                        defaultValue,
+                                        null);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCVariableDecl VarDef(JCModifiers mods, Name name, JCExpression vartype, JCExpression init) {
+         JCVariableDecl tree = new JCVariableDecl(mods, name, vartype, init, null);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCVariableDecl ReceiverVarDef(JCModifiers mods, JCExpression name, JCExpression vartype) {
+         JCVariableDecl tree = new JCVariableDecl(mods, name, vartype);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCSkip Skip() {
+         JCSkip tree = new JCSkip();
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCBlock Block(long flags, List<JCStatement> stats) {
+         JCBlock tree = new JCBlock(flags, stats);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCDoWhileLoop DoLoop(JCStatement body, JCExpression cond) {
+         JCDoWhileLoop tree = new JCDoWhileLoop(body, cond);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCWhileLoop WhileLoop(JCExpression cond, JCStatement body) {
+         JCWhileLoop tree = new JCWhileLoop(cond, body);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+@@ -240,37 +426,37 @@
+                            JCStatement body)
+     {
+         JCForLoop tree = new JCForLoop(init, cond, step, body);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCEnhancedForLoop ForeachLoop(JCVariableDecl var, JCExpression expr, JCStatement body) {
+         JCEnhancedForLoop tree = new JCEnhancedForLoop(var, expr, body);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCLabeledStatement Labelled(Name label, JCStatement body) {
+         JCLabeledStatement tree = new JCLabeledStatement(label, body);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCSwitch Switch(JCExpression selector, List<JCCase> cases) {
+         JCSwitch tree = new JCSwitch(selector, cases);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCCase Case(JCExpression pat, List<JCStatement> stats) {
+         JCCase tree = new JCCase(pat, stats);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCSynchronized Synchronized(JCExpression lock, JCBlock body) {
+         JCSynchronized tree = new JCSynchronized(lock, body);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+@@ -283,13 +469,13 @@
+                      List<JCCatch> catchers,
+                      JCBlock finalizer) {
+         JCTry tree = new JCTry(resources, body, catchers, finalizer);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCCatch Catch(JCVariableDecl param, JCBlock body) {
+         JCCatch tree = new JCCatch(param, body);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+@@ -298,49 +484,49 @@
+                                    JCExpression elsepart)
+     {
+         JCConditional tree = new JCConditional(cond, thenpart, elsepart);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCIf If(JCExpression cond, JCStatement thenpart, JCStatement elsepart) {
+         JCIf tree = new JCIf(cond, thenpart, elsepart);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCExpressionStatement Exec(JCExpression expr) {
+         JCExpressionStatement tree = new JCExpressionStatement(expr);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCBreak Break(Name label) {
+         JCBreak tree = new JCBreak(label, null);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCContinue Continue(Name label) {
+         JCContinue tree = new JCContinue(label, null);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCReturn Return(JCExpression expr) {
+         JCReturn tree = new JCReturn(expr);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCThrow Throw(JCExpression expr) {
+         JCThrow tree = new JCThrow(expr);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCAssert Assert(JCExpression cond, JCExpression detail) {
+         JCAssert tree = new JCAssert(cond, detail);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+@@ -349,7 +535,7 @@
+                        List<JCExpression> args)
+     {
+         JCMethodInvocation tree = new JCMethodInvocation(typeargs, fn, args);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+@@ -360,7 +546,7 @@
+                              JCClassDecl def)
+     {
+         JCNewClass tree = new JCNewClass(encl, typeargs, clazz, args, def);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+@@ -369,7 +555,7 @@
+                              List<JCExpression> elems)
+     {
+         JCNewArray tree = new JCNewArray(elemtype, dims, elems);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+@@ -377,110 +563,110 @@
+                            JCTree body)
+     {
+         JCLambda tree = new JCLambda(params, body);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCParens Parens(JCExpression expr) {
+         JCParens tree = new JCParens(expr);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCAssign Assign(JCExpression lhs, JCExpression rhs) {
+         JCAssign tree = new JCAssign(lhs, rhs);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCAssignOp Assignop(JCTree.Tag opcode, JCTree lhs, JCTree rhs) {
+         JCAssignOp tree = new JCAssignOp(opcode, lhs, rhs, null);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCUnary Unary(JCTree.Tag opcode, JCExpression arg) {
+         JCUnary tree = new JCUnary(opcode, arg);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCBinary Binary(JCTree.Tag opcode, JCExpression lhs, JCExpression rhs) {
+         JCBinary tree = new JCBinary(opcode, lhs, rhs, null);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCTypeCast TypeCast(JCTree clazz, JCExpression expr) {
+         JCTypeCast tree = new JCTypeCast(clazz, expr);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCInstanceOf TypeTest(JCExpression expr, JCTree clazz) {
+         JCInstanceOf tree = new JCInstanceOf(expr, clazz);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCArrayAccess Indexed(JCExpression indexed, JCExpression index) {
+         JCArrayAccess tree = new JCArrayAccess(indexed, index);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCFieldAccess Select(JCExpression selected, Name selector) {
+         JCFieldAccess tree = new JCFieldAccess(selected, selector, null);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCMemberReference Reference(JCMemberReference.ReferenceMode mode, Name name,
+             JCExpression expr, List<JCExpression> typeargs) {
+         JCMemberReference tree = new JCMemberReference(mode, name, expr, typeargs);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCIdent Ident(Name name) {
+         JCIdent tree = new JCIdent(name, null);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCLiteral Literal(TypeTag tag, Object value) {
+         JCLiteral tree = new JCLiteral(tag, value);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCPrimitiveTypeTree TypeIdent(TypeTag typetag) {
+         JCPrimitiveTypeTree tree = new JCPrimitiveTypeTree(typetag);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCArrayTypeTree TypeArray(JCExpression elemtype) {
+         JCArrayTypeTree tree = new JCArrayTypeTree(elemtype);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCTypeApply TypeApply(JCExpression clazz, List<JCExpression> arguments) {
+         JCTypeApply tree = new JCTypeApply(clazz, arguments);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCTypeUnion TypeUnion(List<JCExpression> components) {
+         JCTypeUnion tree = new JCTypeUnion(components);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCTypeIntersection TypeIntersection(List<JCExpression> components) {
+         JCTypeIntersection tree = new JCTypeIntersection(components);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+@@ -490,38 +676,49 @@
+ 
+     public JCTypeParameter TypeParameter(Name name, List<JCExpression> bounds, List<JCAnnotation> annos) {
+         JCTypeParameter tree = new JCTypeParameter(name, bounds, annos);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCWildcard Wildcard(TypeBoundKind kind, JCTree type) {
+         JCWildcard tree = new JCWildcard(kind, type);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public TypeBoundKind TypeBoundKind(BoundKind kind) {
+         TypeBoundKind tree = new TypeBoundKind(kind);
++        fillTreeInfo(tree);
++        return tree;
++    }
++
++    public JCASTAnnotation ASTAnnotation(JCTree annotationType, List<JCExpression> args) {
++        JCASTAnnotation tree = new JCASTAnnotation(annotationType, args);
++        // no annotation of annotation !: only position  fillTreePosAndPopTokenExtensions(tree);
+         tree.pos = pos;
+         return tree;
+     }
+ 
+     public JCAnnotation Annotation(JCTree annotationType, List<JCExpression> args) {
+         JCAnnotation tree = new JCAnnotation(Tag.ANNOTATION, annotationType, args);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCAnnotation TypeAnnotation(JCTree annotationType, List<JCExpression> args) {
+         JCAnnotation tree = new JCAnnotation(Tag.TYPE_ANNOTATION, annotationType, args);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public JCModifiers Modifiers(long flags, List<JCAnnotation> annotations) {
+         JCModifiers tree = new JCModifiers(flags, annotations);
+         boolean noFlags = (flags & (Flags.ModifierFlags | Flags.ANNOTATION)) == 0;
+-        tree.pos = (noFlags && annotations.isEmpty()) ? Position.NOPOS : pos;
++        // temporary change pos
++        int prevPos = this.pos;
++        this.pos = (noFlags && annotations.isEmpty()) ? Position.NOPOS : pos;
++        fillTreeInfo(tree);
++        this.pos = prevPos;
+         return tree;
+     }
+ 
+@@ -531,7 +728,7 @@
+ 
+     public JCAnnotatedType AnnotatedType(List<JCAnnotation> annotations, JCExpression underlyingType) {
+         JCAnnotatedType tree = new JCAnnotatedType(annotations, underlyingType);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+@@ -541,13 +738,13 @@
+ 
+     public JCErroneous Erroneous(List<? extends JCTree> errs) {
+         JCErroneous tree = new JCErroneous(errs);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+     public LetExpr LetExpr(List<JCVariableDecl> defs, JCTree expr) {
+         LetExpr tree = new LetExpr(defs, expr);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
+@@ -568,7 +765,7 @@
+ 
+     public LetExpr LetExpr(JCVariableDecl def, JCTree expr) {
+         LetExpr tree = new LetExpr(List.of(def), expr);
+-        tree.pos = pos;
++        fillTreeInfo(tree);
+         return tree;
+     }
+ 
