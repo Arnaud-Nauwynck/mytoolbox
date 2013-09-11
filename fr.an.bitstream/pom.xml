@@ -1,0 +1,45 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>fr.an.bitstream</groupId>
+  <artifactId>bitstream</artifactId>
+  <version>1.0.0</version>
+  
+  <name>BitStream - for Binary Encoder-Decoder at bit level</name>
+  <description>Utililty classes for writing compression encoder/decoder using BitStream.
+  BitStream are like Stream, but for working at Bit level (finer than java.io.Stream at 1 byte=8 bits level)
+  </description>
+
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.11</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>trove</groupId>
+      <artifactId>trove</artifactId>
+      <version>1.0.2</version>
+      <scope>compile</scope>
+    </dependency>
+  
+  </dependencies>
+
+  <build>
+    <plugins>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <version>2.5.1</version>
+            <configuration>
+                <source>1.6</source>
+                <target>1.6</target>
+            </configuration>
+        </plugin>
+    </plugins>
+  </build>  
+
+    
+</project>
