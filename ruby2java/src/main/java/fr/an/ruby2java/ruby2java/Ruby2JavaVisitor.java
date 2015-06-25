@@ -9,7 +9,7 @@ import org.jcodings.Encoding;
 import org.jruby.Ruby;
 import org.jruby.ast.*;
 import org.jruby.ast.visitor.NodeVisitor;
-import org.jruby.parser.StaticScope;
+import org.jruby.internal.runtime.methods.ProcMethod;
 import org.jruby.runtime.Helpers;
 import org.jruby.util.ByteList;
 import org.jruby.util.KeyValuePair;
@@ -439,15 +439,23 @@ public class Ruby2JavaVisitor implements NodeVisitor<Object> {
 
 	@Override
 	public Object visitBlockArgNode(BlockArgNode node) {
-		// TODO Auto-generated method stub
-		unsupported(node); return null;
+		String name = ruby2javaIdent(node.getName());
+		print(name);
+		return null;
 	}
 
 
 	@Override
 	public Object visitBlockPassNode(BlockPassNode node) {
-		// TODO Auto-generated method stub
-		unsupported(node); return null;
+		Node bodyNode = node.getBodyNode();
+		boolean isCallable = (bodyNode instanceof IterNode)
+				// || (bodyNode instanceof ProcMethod)
+				;
+		if (! isCallable) {
+			print("() -> ");
+		}
+		visitNode(bodyNode);
+		return null;
 	}
 
 	@Override
@@ -957,8 +965,15 @@ public class Ruby2JavaVisitor implements NodeVisitor<Object> {
 
 	@Override
 	public Object visitOptArgNode(OptArgNode node) {
-		// TODO Auto-generated method stub
-		unsupported(node); return null;
+		Node value = node.getValue();
+		if (value instanceof LocalAsgnNode) {
+			LocalAsgnNode value2 = (LocalAsgnNode) value;
+			visitNode(value2);
+		} else {
+			print("/*SHOULD NOT OCCUR: OptArgNode(..)*/");
+			visitNode(value);
+		}
+		return null;
 	}
 
 	@Override
@@ -990,14 +1005,18 @@ public class Ruby2JavaVisitor implements NodeVisitor<Object> {
 
 	@Override
 	public Object visitRedoNode(RedoNode node) {
-		// TODO Auto-generated method stub
-		unsupported(node); return null;
+		print("/*UNSUPPORTED redo (deprecated)*/");
+		return null;
 	}
 
 	@Override
 	public Object visitRegexpNode(RegexpNode node) {
-		// TODO Auto-generated method stub
-		unsupported(node); return null;
+		String value = ruby2javaText(node.getValue());
+	    // TOADD ? RegexpOptions options = node.getOptions();
+	    print("Pattern.compile(\"");
+        print(value); // TODO escape java chars
+	    print("\")");
+		return null;
 	}
 
 	@Override
@@ -1088,13 +1107,16 @@ public class Ruby2JavaVisitor implements NodeVisitor<Object> {
 
 	@Override
 	public Object visitStrNode(StrNode node) {
-		ByteList value = node.getValue();
-		// ignored? int codeRange = node.getCodeRange();
-        String str = Helpers.decodeByteList(ruby, value);
+		String str = ruby2javaText(node.getValue());
+        // ignored? int codeRange = node.getCodeRange();
         print("\"" + str + "\"");
         return null;
 	}
 
+	private String ruby2javaText(ByteList bytes) {
+		return Helpers.decodeByteList(ruby, bytes);
+	}
+	
 	@Override
 	public Object visitSuperNode(SuperNode node) {
 		Node argsNode = node.getArgsNode();
@@ -1183,7 +1205,8 @@ public class Ruby2JavaVisitor implements NodeVisitor<Object> {
 	@Override
 	public Object visitOther(Node node) {
 		// TODO Auto-generated method stub
-		unsupported(node); return null;
+		unsupported(node); 
+		return null;
 	}
 
 }

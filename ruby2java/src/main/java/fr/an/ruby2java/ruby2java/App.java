@@ -8,6 +8,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import org.jruby.Ruby;
 import org.jruby.RubyInstanceConfig;
@@ -53,7 +56,15 @@ public class App  {
 		
 		recursiveScan("", inputDir, outputDir);
 		
-		System.out.println("Unsupported counts: " + contextBuilder.getUnsupportedCountMap());
+		String report = "Unsupported counts: " 
+				+ contextBuilder.getUnsupportedCountMap().toString().replace(",", "\n");
+		System.out.println(report);
+		try {
+			Path outputPath = Paths.get(outputDir.toURI());
+			Files.write(outputPath.resolve("report.txt"), report.getBytes());
+		} catch (IOException e) {
+			System.out.println("Failed to write report");
+		}
 	}
 
 	private void recursiveScan(String path, File input, File output) {
