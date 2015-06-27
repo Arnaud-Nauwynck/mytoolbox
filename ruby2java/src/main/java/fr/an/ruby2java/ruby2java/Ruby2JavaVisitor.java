@@ -2,6 +2,7 @@ package fr.an.ruby2java.ruby2java;
 
 import java.io.PrintStream;
 import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -14,6 +15,7 @@ import org.jruby.runtime.Helpers;
 import org.jruby.util.ByteList;
 import org.jruby.util.KeyValuePair;
 import org.jruby.util.RegexpOptions;
+import org.w3c.dom.NodeList;
 
 import fr.an.ruby2java.ruby2java.CountMap.Count;
 
@@ -294,15 +296,25 @@ public class Ruby2JavaVisitor implements NodeVisitor<Object> {
 	    Node argsNode = node.getArgsNode();
 	    Node iterNode = node.getIterNode();
 
-	    if (receiverNode != null) {
+	    if (name.equals("[]") && receiverNode != null 
+	    		&& (argsNode instanceof ArrayNode) && ((ArrayNode)argsNode).size() == 1
+	    		&& iterNode == null) {
+		    Node index = ((ArrayNode)argsNode).get(0);
 	    	visitNode(receiverNode);
-	    	print(".");
+		    print("[");
+		    visitNode(index);
+		    print("]");
+	    } else {
+		    if (receiverNode != null) {
+		    	visitNode(receiverNode);
+		    	print(".");
+		    }
+		    print(name);
+		    print("(");
+		    visitNode(argsNode);
+		    visitNode(iterNode);
+		    print(")");
 	    }
-	    print(name);
-	    print("(");
-	    visitNode(argsNode);
-	    visitNode(iterNode);
-	    print(")");
 	    
 		return null;
 	}
@@ -392,14 +404,33 @@ public class Ruby2JavaVisitor implements NodeVisitor<Object> {
 	@Override
 	public Object visitAttrAssignNode(AttrAssignNode node) {
 		Node receiverNode = node.getReceiverNode();
-	    String name = ruby2javaIdent(node.getName());
+	    String methodName = ruby2javaIdent(node.getName());
 	    Node argsNode = node.getArgsNode();
 	    
 	    visitNode(receiverNode);
-	    print(".");
-	    print(name);
-	    print(" = ");
-	    visitNode(argsNode);
+
+	    Node[] args = null;
+	    if (argsNode instanceof ArrayNode) {
+	    	args = ((ArrayNode) argsNode).children();
+	    }
+
+	    
+	    if (methodName.equals("[]=") && args != null && args.length == 2) {
+	    	// example:  "a[b] = c"
+	    	print("[");
+	    	visitNode(args[0]);
+	    	print("] = ");
+	    	visitNode(args[1]);
+	    } else {
+	    	print(".");
+	    	String attrName = methodName;
+	    	if (attrName.endsWith("=")) {
+	    		attrName = attrName.substring(0, attrName.length()-1);
+	    	}
+	    	print(attrName);
+	    	print(" = ");
+	    	visitNode(argsNode);
+	    }
 	    println(";");
 	    return null;
 	}
@@ -577,8 +608,11 @@ public class Ruby2JavaVisitor implements NodeVisitor<Object> {
 
 	@Override
 	public Object visitColon3Node(Colon3Node node) {
-		// TODO Auto-generated method stub
-		unsupported(node); return null;
+		String name = ruby2javaIdent(node.getName());
+		// print("$global(\"");
+		print(name);
+		// print("\")");
+		return null;
 	}
 
 	@Override
@@ -648,8 +682,10 @@ public class Ruby2JavaVisitor implements NodeVisitor<Object> {
 
 	@Override
 	public Object visitDefinedNode(DefinedNode node) {
-		// TODO Auto-generated method stub
-		unsupported(node); return null;
+		print("$defined(");
+		visitNode(node.getExpressionNode());
+		print(")");
+		return null;
 	}
 
 	@Override
@@ -737,8 +773,16 @@ public class Ruby2JavaVisitor implements NodeVisitor<Object> {
 
 	@Override
 	public Object visitForNode(ForNode node) {
-		// TODO Auto-generated method stub
-		unsupported(node); 
+		Node bodyNode = node.getBodyNode();
+		Node iterNode = node.getIterNode();
+		Node varNode = node.getVarNode();
+		
+		print("for(Object ");
+		visitNode(varNode);
+		print(":");
+		visitNode(iterNode);
+		print(")");
+		visitNode(bodyNode);
 		return null;
 	}
 
@@ -883,20 +927,48 @@ public class Ruby2JavaVisitor implements NodeVisitor<Object> {
 
 	@Override
 	public Object visitMultipleAsgnNode(MultipleAsgnNode node) {
-		// TODO Auto-generated method stub
-		unsupported(node); return null;
+	    Node[] pre = node.getPre().children();
+	    Node rest = node.getRest();
+	    Node[] post = node.getPost().children();
+	    
+	    print("/* UNSUPPORTED ... UNUSED YET */");
+		return null;
 	}
 
 	@Override
 	public Object visitMatch2Node(Match2Node node) {
-		// TODO Auto-generated method stub
-		unsupported(node); return null;
+		Node receiverNode = node.getReceiverNode(); // instanceof RegexpNode..
+	    Node valueNode = node.getValueNode();  
+	    visitNode(receiverNode);
+	    print(".matches(");
+	    visitNode(valueNode);
+	    print(")");
+		return null;
 	}
 
 	@Override
 	public Object visitMatch3Node(Match3Node node) {
-		// TODO Auto-generated method stub
-		unsupported(node); return null;
+	    Node receiverNode = node.getReceiverNode();
+	    Node valueNode = node.getValueNode();
+
+	    if (valueNode instanceof RegexpNode) {
+	    	RegexpNode re = (RegexpNode) valueNode;
+	    	String reStr = ruby2javaText(re.getValue());
+	    	print("/*cst*/Pattern.compile(\"" + reStr + "\")");
+	    	print(".matcher(");
+	    	visitNode(receiverNode);
+	    	print(").matches()");	    	
+	    } else if (valueNode instanceof DRegexpNode) {
+	    	DRegexpNode re = (DRegexpNode) valueNode;
+	    	print("Pattern.compile(");
+	    	visitNode(re);
+	    	print(").matcher(");
+	    	visitNode(receiverNode);
+	    	print(").matches()");	    	
+	    } else {
+	    	println("/* SHOULD NOT OCCUR Match3Node */");
+	    }
+		return null;
 	}
 
 	@Override
@@ -907,8 +979,8 @@ public class Ruby2JavaVisitor implements NodeVisitor<Object> {
 
 	@Override
 	public Object visitNextNode(NextNode node) {
-		// TODO Auto-generated method stub
-		unsupported(node); return null;
+		println("continue;");
+		return null;
 	}
 
 	@Override
@@ -919,14 +991,39 @@ public class Ruby2JavaVisitor implements NodeVisitor<Object> {
 
 	@Override
 	public Object visitNthRefNode(NthRefNode node) {
-		// TODO Auto-generated method stub
-		unsupported(node); return null;
+		print("$nthrefnode(" + node.getMatchNumber() + ")");
+		return null;
 	}
 
 	@Override
 	public Object visitOpElementAsgnNode(OpElementAsgnNode node) {
-		// TODO Auto-generated method stub
-		unsupported(node); return null;
+	    Node receiverNode = node.getReceiverNode();
+	    Node argsNode = node.getArgsNode();
+	    String opAssign = node.getOperatorName() + "=";
+	    Node valueNode = node.getValueNode();
+
+	    if (argsNode == null) {
+	    	doVisitAssign(receiverNode, opAssign, valueNode);
+	    } else if (argsNode instanceof ArrayNode && ((ArrayNode) argsNode).size() == 1) {
+	    	Node arg0 = ((ArrayNode) argsNode).get(0);
+	    	if (opAssign.equals("||=")) {
+	    		// array:: "a[b] ||= c"
+	    		visitNode(receiverNode);
+	    		print("[");
+	    		visitNode(arg0);
+	    		print("] ");
+	    		print(opAssign);
+	    		print(" ");
+	    		visitNode(valueNode);
+	    	} else {
+	    		doVisitAssign(receiverNode, arg0, opAssign, valueNode);
+	    	}
+	    } else {
+	    	println("/* SHOULD NOT OCCUR Unknown OpElementAsgnNode */");
+	    	doVisitAssign(receiverNode, argsNode, opAssign, valueNode);
+	    }
+
+		return null;
 	}
 
 	@Override
@@ -934,10 +1031,27 @@ public class Ruby2JavaVisitor implements NodeVisitor<Object> {
 	    Node receiverNode = node.getReceiverNode();
 	    String opAssign = node.getOperatorName() + "=";
 	    Node valueNode = node.getValueNode();
-	    // String variableName;
-	    // String variableNameAsgn;
-	    doVisitAssign(receiverNode, opAssign, valueNode);
+	    String variableName = ruby2javaIdent(node.getVariableName());
+	    doVisitAssign(receiverNode, variableName, opAssign, valueNode);
 		return null;
+	}
+
+	private void doVisitAssign(Node lhs, String varName, String opAssign, Node rhs) {
+		visitNode(lhs);
+		print(".");
+		print(varName);
+		print(" " + opAssign + " ");
+	    visitNode(rhs);
+	    println(";");
+	}
+
+	private void doVisitAssign(Node lhs, Node varName, String opAssign, Node rhs) {
+		visitNode(lhs);
+		print(".");
+		visitNode(varName);
+		print(" " + opAssign + " ");
+	    visitNode(rhs);
+	    println(";");
 	}
 
 	private void doVisitAssign(Node lhs, String opAssign, Node rhs) {
@@ -1024,11 +1138,68 @@ public class Ruby2JavaVisitor implements NodeVisitor<Object> {
 		// TODO Auto-generated method stub
 		unsupported(node); return null;
 	}
-
+	
 	@Override
 	public Object visitRescueBodyNode(RescueBodyNode node) {
-		// TODO Auto-generated method stub
-		unsupported(node); return null;
+		for(RescueBodyNode elt = node; elt != null; elt = elt.getOptRescueNode()) {
+			visitRescueBodyNodeElement(elt);
+	    }	    
+	    return null;
+	}
+
+	private void visitRescueBodyNodeElement(RescueBodyNode node) {
+		Node exceptionNodes = node.getExceptionNodes();
+		Node bodyNode = node.getBodyNode();
+		// cf caller linked list: RescueBodyNode optRescueNode = node.getOptRescueNode();
+
+		print("catch (");
+		if (exceptionNodes != null) {
+			// example: /puppet/forge.rb:133
+			if (exceptionNodes instanceof ArrayNode) {
+				Node[] exceptions = ((ArrayNode) exceptionNodes).children();
+				visitNodes(exceptions, " | ");
+			} else {
+				visitNode(exceptionNodes);
+			}
+		} else {
+			print("Throwable");
+		}
+		print(" ");
+		
+		// extract exception name
+		String exName = null;
+		Node remainingCatchStmt = null;
+		if (bodyNode instanceof BlockNode) {
+		    BlockNode bodyBlock = (BlockNode) bodyNode;
+		    Node[] bodyBlocStmts = bodyBlock.children();
+		    if (bodyBlocStmts.length == 2
+		    		) {
+		    	remainingCatchStmt = bodyBlocStmts[1];
+		    	if (bodyBlocStmts[0] instanceof AssignableNode
+		    		&& (((AssignableNode) bodyBlocStmts[0]).getValueNode() instanceof GlobalVarNode)
+		    		&& ((GlobalVarNode) ((AssignableNode) bodyBlocStmts[0]).getValueNode()).getName().equals("$!")
+		    		) {
+		    		if (bodyBlocStmts[0] instanceof LocalAsgnNode) {
+		    			exName = ((LocalAsgnNode) bodyBlocStmts[0]).getName();
+		    		} else if (bodyBlocStmts[0] instanceof DAsgnNode) {
+		    			exName = ((DAsgnNode) bodyBlocStmts[0]).getName();
+		    		}
+		    	}
+		    }
+		} 
+		
+		if (exName != null) {
+			print(exName);
+		} //else catch with no local ex name?
+		println(")");
+		boolean isBlock = isBlock(remainingCatchStmt);
+		if (! isBlock) {
+			println("{");
+		}
+		visitNode(remainingCatchStmt);
+		if (! isBlock) {
+			println("}");
+		}
 	}
 
 	@Override
@@ -1040,10 +1211,14 @@ public class Ruby2JavaVisitor implements NodeVisitor<Object> {
 	    println("try {");
 	    visitNode(bodyNode);
 	    println("} ");
-	    rescueNode.accept(this);
-	    println("catch(Throwable else) {");
-	    visitNode(elseNode);
-	    println("}");
+	    if (rescueNode != null) {
+	    	visitNode(rescueNode);
+	    }
+	    if (elseNode != null) {
+		    println("catch(Throwable else) {");
+		    visitNode(elseNode);
+		    println("}");
+	    }
 	    return null;
 	}
 
@@ -1095,14 +1270,17 @@ public class Ruby2JavaVisitor implements NodeVisitor<Object> {
 
 	@Override
 	public Object visitSelfNode(SelfNode node) {
-		print("this"); // TOCHECK when singleton self => current class 
+		print("this"); // TO CHECK when singleton self => current class 
 		return null;
 	}
 
 	@Override
 	public Object visitSplatNode(SplatNode node) {
-		// TODO Auto-generated method stub
-		unsupported(node); return null;
+		Node value = node.getValue();
+		print("$splat(");
+		visitNode(value);
+		println(")");
+		return null;
 	}
 
 	@Override
@@ -1174,8 +1352,24 @@ public class Ruby2JavaVisitor implements NodeVisitor<Object> {
 
 	@Override
 	public Object visitUntilNode(UntilNode node) {
-		// TODO Auto-generated method stub
-		unsupported(node); return null;
+		Node bodyNode = node.getBodyNode();
+		Node conditionNode = node.getConditionNode();
+	    boolean evaluateAtStart = node.evaluateAtStart();
+	    if (evaluateAtStart) {
+	    	// "until ... do .. end" example: /puppet/pops/parser/epp_support.rb:44
+			print (" while (!");
+			visitNode(conditionNode);
+			print(")");
+			visitNode(bodyNode);
+	    } else {
+			print("do ");
+			visitNode(bodyNode);
+			print (" while (!");
+			visitNode(conditionNode);
+			print(")");
+	    }
+		print(";");
+		return null;
 	}
 
 	@Override
@@ -1186,20 +1380,39 @@ public class Ruby2JavaVisitor implements NodeVisitor<Object> {
 
 	@Override
 	public Object visitWhileNode(WhileNode node) {
-		// TODO Auto-generated method stub
-		unsupported(node); return null;
+		Node bodyNode = node.getBodyNode();
+		Node conditionNode = node.getConditionNode();
+		boolean evaluateAtStart = node.evaluateAtStart();
+//		if (evaluateAtStart) {
+			print("while (");
+			visitNode(conditionNode);
+			print(") ");
+			visitNode(bodyNode);
+			print(";");
+//		} else {
+//			// example: /puppet/pops/binder/bindings_checker.rb:194
+//			print("WHILE");
+//		}
+		return null;
 	}
 
 	@Override
 	public Object visitXStrNode(XStrNode node) {
-		// TODO Auto-generated method stub
-		unsupported(node); return null;
+		String str = ruby2javaText(node.getValue());
+		print("$shellExec(\"");
+		print(str);
+		print(")");
+		return null;
 	}
 
 	@Override
 	public Object visitYieldNode(YieldNode node) {
-		// TODO Auto-generated method stub
-		unsupported(node); return null;
+		Node argsNode = node.getArgsNode();
+		// TODO ... need rewrite parent caller as iterator
+		print("$yield(");
+		visitNode(argsNode);
+		println(");");
+		return null;
 	}
 
 	@Override

@@ -23,7 +23,7 @@ import org.jruby.ast.Node;
 public class App  {
 
 	private File inputDir = new File("/home/csid/downloadTools/devops/puppet/lib");
-	private File outputDir = new File("target/gen");
+	private File outputDir = new File("gen");
 	
 	private RubyInstanceConfig rubyConfig;
 	private Ruby ruby;
@@ -124,7 +124,16 @@ public class App  {
 				}
 			}
 		}
-
+		// copy origin file
+		Path inputFilePath = Paths.get(inputFile.toURI());
+		Path outputCopyFilePath = Paths.get(new File(outputFile.getParentFile(), inputFile.getName()).toURI());
+		if (! Files.exists(outputCopyFilePath)) {
+			try {
+				Files.copy(inputFilePath, outputCopyFilePath);
+			} catch (IOException e) {
+			}
+		}
+		
 		R2JContext ctx = contextBuilder.forFile(path);
 		PrintStream out = null;
 		try {
