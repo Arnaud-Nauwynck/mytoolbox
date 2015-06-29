@@ -11,7 +11,7 @@ public class R2JContextBuilder {
 	
 	private Map<String,R2JContext> forFiles = new HashMap<String,R2JContext>();
 	
-	CountMap unsupportedCountMap = new CountMap ();
+	private CountMap unsupportedCountMap = new CountMap ();
 	
 	
 	public R2JContextBuilder(Ruby ruby) {
