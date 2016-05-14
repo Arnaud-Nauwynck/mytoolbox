@@ -21,6 +21,7 @@ import javax.imageio.ImageIO;
 public class SteganoEncodeMain {
 
     private File inputDir;
+    private File inputFile;
     private Pattern inputFilePattern;
 
     private int maxPartLen = 2*1024*1024; // Mo
@@ -43,6 +44,8 @@ public class SteganoEncodeMain {
         for (int i = 0; i < args.length; i++) {
             String a = args[i];
             if (a.equals("-i")) {
+                inputFile = new File(args[++i]);
+            } else if (a.equals("--pattern")) {
                 inputFilePattern = Pattern.compile(args[++i]);
             } else if (a.equals("-d")) {
                 inputDir = new File(args[++i]);
@@ -65,6 +68,14 @@ public class SteganoEncodeMain {
         }
     }
     
+    public File getInputFile() {
+        return inputFile;
+    }
+
+    public void setInputFile(File inputFile) {
+        this.inputFile = inputFile;
+    }
+
     public File getInputDir() {
         return inputDir;
     }
@@ -130,33 +141,44 @@ public class SteganoEncodeMain {
         try {
             IndexHtmlWriter indexHtmlWriter = new IndexHtmlWriter(outputDir, outputFilename);
             
-            Path inputDirPath = Paths.get(inputDir.toURI());
-            Files.walkFileTree(inputDirPath, new SimpleFileVisitor<Path>(){
-                @Override
-                public FileVisitResult visitFile(Path filePath, BasicFileAttributes attrs) throws IOException {
-                    if (attrs.isRegularFile()) {
-                        String fileName = filePath.getFileName().toString();
-                        File file = filePath.toFile();
-                        String relativePathName = outputZipPath + inputDirPath.relativize(filePath).toString();
-                        if (inputFilePattern != null && ! inputFilePattern.matcher(fileName).matches()) {
-                            System.out.println("skip " + relativePathName);
-                            return FileVisitResult.CONTINUE;
+            if (inputFile != null) {
+                String relativePathName = inputFile.getName();
+                indexedFilesZipper.putNextEntry(relativePathName, inputFile, 
+                    (buffer,zi) -> {
+                        String imgFileName = outputFilename + "-" + zi + extName;
+                        indexHtmlWriter.addImgFile(imgFileName);
+                        File outputImgFile = new File(outputDir, imgFileName);
+                        writeWrapPNG(buffer, outputImgFile);
+                    });
+            } else {
+                Path inputDirPath = Paths.get(inputDir.toURI());
+                Files.walkFileTree(inputDirPath, new SimpleFileVisitor<Path>(){
+                    @Override
+                    public FileVisitResult visitFile(Path filePath, BasicFileAttributes attrs) throws IOException {
+                        if (attrs.isRegularFile()) {
+                            String fileName = filePath.getFileName().toString();
+                            File file = filePath.toFile();
+                            String relativePathName = outputZipPath + inputDirPath.relativize(filePath).toString();
+                            if (inputFilePattern != null && ! inputFilePattern.matcher(fileName).matches()) {
+                                System.out.println("skip " + relativePathName);
+                                return FileVisitResult.CONTINUE;
+                            }
+                            // System.out.println("processing " + relativePathName);
+                            System.out.print('.');
+    
+                            indexedFilesZipper.putNextEntry(relativePathName, file, 
+                                (buffer,zi) -> {
+                                    String imgFileName = outputFilename + "-" + zi + extName;
+                                    indexHtmlWriter.addImgFile(imgFileName);
+                                    File outputImgFile = new File(outputDir, imgFileName);
+                                    writeWrapPNG(buffer, outputImgFile);
+                                });
+                            
                         }
-                        // System.out.println("processing " + relativePathName);
-                        System.out.print('.');
-
-                        indexedFilesZipper.putNextEntry(relativePathName, file, 
-                            (buffer,zi) -> {
-                                String imgFileName = outputFilename + "-" + zi + extName;
-                                indexHtmlWriter.addImgFile(imgFileName);
-                                File outputImgFile = new File(outputDir, imgFileName);
-                                writeWrapPNG(buffer, outputImgFile);
-                            });
-                        
+                        return FileVisitResult.CONTINUE;
                     }
-                    return FileVisitResult.CONTINUE;
-                }
-            });
+                });
+            }
             
             indexHtmlWriter.close();
         } catch(Exception ex) {

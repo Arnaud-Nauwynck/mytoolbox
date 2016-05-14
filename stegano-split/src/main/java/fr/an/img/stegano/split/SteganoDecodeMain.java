@@ -14,8 +14,6 @@ import java.util.zip.ZipInputStream;
 
 import javax.imageio.ImageIO;
 
-import org.apache.commons.io.IOUtils;
-
 public class SteganoDecodeMain {
 
     private File inputDir;

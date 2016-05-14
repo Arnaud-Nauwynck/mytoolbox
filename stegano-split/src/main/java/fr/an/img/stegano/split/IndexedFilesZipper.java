@@ -10,8 +10,6 @@ import java.util.function.BiConsumer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import org.apache.commons.io.IOUtils;
-
 public class IndexedFilesZipper {
 
     private int maxPartLen;
