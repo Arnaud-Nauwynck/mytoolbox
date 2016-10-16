@@ -18,13 +18,13 @@ import org.eclipse.jdt.core.dom.StringLiteral;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 
 import fr.an.eclipse.pattern.helper.AbstractASTRewriteRefactoringHelper;
-import fr.an.eclipse.tools.refactoring.Activator;
 
 /**
  * refactoring helper class, for swaping 
  * <code>var.equals("string literal"</code>" 
  * --> <code>stringliteral".equals(var)</code>
  */
+@SuppressWarnings("unchecked")
 public class SwapVarEqualsStringRefactoringHelper extends AbstractASTRewriteRefactoringHelper {
 
 	private static class RefactoringInfo {
@@ -51,7 +51,6 @@ public class SwapVarEqualsStringRefactoringHelper extends AbstractASTRewriteRefa
 	
 	// -------------------------------------------------------------------------
 	
-	@SuppressWarnings("unchecked")
 	@Override
 	protected Object prepareRefactorUnit(CompilationUnit unit) throws Exception {
 		final RefactoringInfo res = new RefactoringInfo();
@@ -93,9 +92,8 @@ public class SwapVarEqualsStringRefactoringHelper extends AbstractASTRewriteRefa
 		return res;
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
-	protected void doRefactorUnit(CompilationUnit unit, Object refactoringInfoObject) throws Exception {
+	protected void doRefactorUnit(CompilationUnit unit, Object refactoringInfoObject) {
 		RefactoringInfo refactoringInfo = (RefactoringInfo) refactoringInfoObject;
 		for(SwapVarEqualsRefactoringInfo swapVarInfo : refactoringInfo.ls) {
 			MethodInvocation m = swapVarInfo.equalsMethodInvocation;

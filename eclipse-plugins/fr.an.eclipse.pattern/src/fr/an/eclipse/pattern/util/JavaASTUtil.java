@@ -1,9 +1,24 @@
 package fr.an.eclipse.pattern.util;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
+
+import org.eclipse.core.filebuffers.FileBuffers;
+import org.eclipse.core.filebuffers.ITextFileBuffer;
+import org.eclipse.core.filebuffers.ITextFileBufferManager;
+import org.eclipse.core.filebuffers.LocationKind;
 import org.eclipse.core.resources.IResource;
+import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IJavaProject;
+import org.eclipse.jdt.core.IMethod;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.NamingConventions;
 import org.eclipse.jdt.core.dom.AST;
@@ -16,6 +31,7 @@ import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.FieldAccess;
 import org.eclipse.jdt.core.dom.FieldDeclaration;
+import org.eclipse.jdt.core.dom.IAnnotationBinding;
 import org.eclipse.jdt.core.dom.IExtendedModifier;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.ImportDeclaration;
@@ -32,12 +48,21 @@ import org.eclipse.jdt.core.dom.StructuralPropertyDescriptor;
 import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
+import org.eclipse.jdt.core.search.IJavaSearchConstants;
+import org.eclipse.jdt.core.search.IJavaSearchScope;
+import org.eclipse.jdt.core.search.SearchEngine;
+import org.eclipse.jdt.core.search.SearchMatch;
+import org.eclipse.jdt.core.search.SearchParticipant;
+import org.eclipse.jdt.core.search.SearchPattern;
+import org.eclipse.jdt.core.search.SearchRequestor;
+import org.eclipse.jdt.internal.core.SourceMethod;
+import org.eclipse.jdt.internal.corext.util.SearchUtils;
+import org.eclipse.jface.text.IDocument;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Monitor;
+import org.eclipse.text.edits.TextEdit;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import fr.an.eclipse.pattern.PatternUIPlugin;
 
 
 public class JavaASTUtil {
@@ -51,12 +76,76 @@ public class JavaASTUtil {
 
 
 	public static CompilationUnit parseCompilationUnit(ICompilationUnit cu, IProgressMonitor monitor) {
-		ASTParser parser = ASTParser.newParser(AST.JLS3);
+		ASTParser parser = ASTParser.newParser(AST.JLS8);
 		parser.setSource(cu);
 		parser.setResolveBindings(true);
 		CompilationUnit unit = (CompilationUnit) parser.createAST(monitor);
 		return unit;
 	}
+	
+
+	public static void uiHandleAndRewrite(IProgressMonitor monitor, final CompilationUnit unit, Consumer<CompilationUnit> handler) throws CoreException {
+		if (UiUtil.isSWTGraphicsThread()) {
+			doHandleAndRewrite(monitor, unit, handler);
+        } else {
+            Display.getDefault().syncExec(() -> doHandleAndRewrite(monitor, unit, handler));                           
+        }
+	}
+	
+	private static void doHandleAndRewrite(IProgressMonitor monitor, CompilationUnit unit, Consumer<CompilationUnit> handler) {
+		try {
+			ITextFileBufferManager bufferManager = FileBuffers.getTextFileBufferManager();
+			IPath path = unit.getJavaElement().getPath();
+			bufferManager.connect(path, LocationKind.IFILE, monitor);
+			try {
+		
+				// *** the Biggy : do refactoring ***
+				if (handler != null) {
+					handler.accept(unit);
+				}
+	
+				rewriteASTDocument(monitor, unit);
+	
+			} catch(Exception ex) {
+				PatternUIPlugin.logWarning("Failed to refactor compilation unit " + unit.getJavaElement().getElementName(), ex);
+				// ignore.. no rethrow!!
+			} finally {
+				bufferManager.disconnect(path, LocationKind.IFILE, monitor);
+			}
+		} catch(Exception ex) {
+			throw new RuntimeException(ex);
+		}
+	}
+	
+	public static void uiRewriteASTDocument(IProgressMonitor monitor, CompilationUnit unit) {
+		if (UiUtil.isSWTGraphicsThread()) {
+			rewriteASTDocument(monitor, unit);
+	    } else {
+	        Display.getDefault().syncExec(() -> rewriteASTDocument(monitor, unit));                          
+	    }
+	}
+	
+	public static void rewriteASTDocument(IProgressMonitor monitor, CompilationUnit unit) {
+		IPath path = unit.getJavaElement().getPath();
+		ConsoleUtil.debug("writing changes to %s", path.toString());
+
+		try {
+			ITextFileBufferManager bufferManager = FileBuffers.getTextFileBufferManager();
+			ITextFileBuffer textFileBuffer = bufferManager.getTextFileBuffer(path, LocationKind.IFILE);
+			// retrieve the buffer
+			IDocument document = textFileBuffer.getDocument();
+	
+			Map<?,?> options = JavaCore.getOptions();
+			TextEdit textEdit = unit.rewrite(document, options);
+			textEdit.apply(document);
+	
+			// commit changes to underlying file
+			textFileBuffer.commit(monitor, false);
+		} catch(Exception ex) {
+    		throw new RuntimeException(ex);
+    	}
+	}
+
 	
 	/**
 	 * @param node
@@ -566,5 +655,114 @@ public class JavaASTUtil {
 		}
 		return res;
 	}
+
 	
+
+	public static Annotation findFirstAnnotation(List<IExtendedModifier> modifiers, String fqn) {
+		String shortName = fqn.substring(fqn.lastIndexOf('.') + 1, fqn.length());
+		for(IExtendedModifier modifier : modifiers) {
+			if (modifier.isAnnotation()) {
+				Annotation ann = (Annotation) modifier;
+				Name annTypeName = ann.getTypeName();
+				String annFQN = annTypeName.getFullyQualifiedName();
+				if (annFQN.equals(fqn)) {
+					return ann;
+				}
+				if (annFQN.equals(shortName)) {
+					// resolve for ambiguous import
+					IAnnotationBinding resolveAnn = ann.resolveAnnotationBinding();
+					ITypeBinding annType = resolveAnn.getAnnotationType();
+					if (annType == null) {
+						continue;
+					}
+					String annQN = annType.getQualifiedName();
+					if (annQN.equals(fqn)) {
+						return ann;
+					}
+				}
+			}
+		}
+		return null;
+	}
+	
+	
+	public static List<SourceMethod> searchMethodInvocations(IMethod meth) {
+//		MethodWrapper methCaller = CallHierarchy.getDefault().getCallerRoots(new IMember[] { meth })[0];
+//		MethodWrapper[] calls = methCaller.getCalls(null);
+//		if (calls != null && calls.length != 0) 
+//		{
+//		}
+
+		final List<SourceMethod> res = new ArrayList<>();
+		SearchRequestor searchRequestor = new SearchRequestor() {
+			public void acceptSearchMatch(SearchMatch match) {
+				Object searchElt = match.getElement();
+				if (searchElt instanceof SourceMethod) {
+					res.add((SourceMethod) searchElt);
+				}
+			}
+		};
+
+		int limitTo= IJavaSearchConstants.REFERENCES;
+		SearchPattern pattern= SearchPattern.createPattern(meth, limitTo, SearchUtils.GENERICS_AGNOSTIC_MATCH_RULE);
+		SearchEngine searchEngine= new SearchEngine();
+		IJavaSearchScope searchScope = SearchEngine.createWorkspaceScope();
+		SearchParticipant[] searchParticipants = new SearchParticipant[] { SearchEngine.getDefaultSearchParticipant() };
+		try {
+			searchEngine.search(pattern, searchParticipants, searchScope, searchRequestor, null);
+		} catch (CoreException e) {
+			throw new RuntimeException("search references failed for meth " + meth, e);
+		}
+		return res;
+	}
+	
+
+	/**
+	 * Clones the AST Tree.
+	 * 
+	 * @param astNode
+	 * @return
+	 */
+	@SuppressWarnings("unchecked")
+	public static <T extends ASTNode> T cloneASTNode(final T astNode) {
+		final AST ast = astNode.getAST();
+		final ASTNode createdInstance = ast.createInstance(astNode.getClass());
+		final List<?> structuralPropertiesForType = astNode.structuralPropertiesForType();
+		for (final Object o : structuralPropertiesForType) {
+			final StructuralPropertyDescriptor descriptor = (StructuralPropertyDescriptor) o;
+			if (descriptor.isChildListProperty()) {
+				final List<Object> list = (List<Object>) astNode.getStructuralProperty(descriptor);
+				for (final Object propertyValue : (List<Object>) astNode.getStructuralProperty(descriptor)) {
+					list.add(propertyValue instanceof ASTNode ? cloneASTNode((ASTNode) propertyValue) : propertyValue);
+				}
+			} else {
+				final Object propertyValue = astNode.getStructuralProperty(descriptor);
+				createdInstance.setStructuralProperty(descriptor,
+						propertyValue instanceof ASTNode ? cloneASTNode((ASTNode) propertyValue) : propertyValue);
+			}
+		}
+		return (T) createdInstance;
+	}
+	
+	public static <T extends ASTNode> void insertBefore(List<T> parent, T insertLocation, T element) {
+		int index = parent.indexOf(insertLocation);
+		if (index != -1) {
+			parent.add(index, element);
+		} else {
+			parent.add(element);
+		}
+	}
+
+	public static void insertBefore(ASTNode insertLocation, ASTNode element) {
+		ASTNode parent = insertLocation.getParent();
+		StructuralPropertyDescriptor locationInParent = insertLocation.getLocationInParent();
+		if (locationInParent.isChildListProperty()) {
+			@SuppressWarnings("unchecked")
+			List<ASTNode> ls = (List<ASTNode>) parent.getStructuralProperty(locationInParent);
+			insertBefore(ls, insertLocation, element);
+		} else {
+			throw new IllegalArgumentException("can not insert before .. not in a list");
+		}
+	}
+
 }

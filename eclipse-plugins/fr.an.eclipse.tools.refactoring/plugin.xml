@@ -30,19 +30,18 @@
             <separator name="additions">
             </separator>
         </menu>
-<!--
-  		<menu id="org.eclipse.jdt.ui.refactoring.menu"
-               	label="Joto Source"
-               	path="edit">
-            <separator name="ANToolsRefactoringMenu">
-            </separator>
-        </menu>
--->
          
         <action
                class="fr.an.eclipse.tools.refactoring.actions.SwapVarEqualsStringRefactoringAction"
                id="fr.an.eclipse.tools.refactoring.actions.SwapVarEqualsStringRefactoringAction"
                label="Swap var.equals(string) -> sting.equals(var)"
+               menubarPath="org.eclipse.jdt.ui.refactoring.menu/ANToolsRefactoringMenu">
+        </action>
+
+        <action
+               class="fr.an.eclipse.tools.refactoring.actions.MethodParamsToTupleRefactoringAction"
+               id="fr.an.eclipse.tools.refactoring.actions.MethodParamsToTupleRefactoringAction"
+               label="JAX-RS POST_TupleBodyFragments -> class Request"
                menubarPath="org.eclipse.jdt.ui.refactoring.menu/ANToolsRefactoringMenu">
         </action>
 		

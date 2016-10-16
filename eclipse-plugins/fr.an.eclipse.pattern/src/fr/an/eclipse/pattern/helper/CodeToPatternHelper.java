@@ -2,6 +2,7 @@ package fr.an.eclipse.pattern.helper;
 
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jdt.core.ICompilationUnit;
@@ -17,7 +18,7 @@ import fr.an.eclipse.pattern.impl.ASTNodeToPatternBuilder;
 /**
  *
  */
-public class CodeToPatternHelper extends AbstractASTCompilationUnitActionHelper {
+public class CodeToPatternHelper extends AbstractCompilationUnitActionHelper {
 
 	private String result;
 	
@@ -52,6 +53,8 @@ public class CodeToPatternHelper extends AbstractASTCompilationUnitActionHelper 
 		this.result = xstream.toXML(unitPattern);
 		
 	}
+	
+	
 
 	public String getResult() {
 		return result;

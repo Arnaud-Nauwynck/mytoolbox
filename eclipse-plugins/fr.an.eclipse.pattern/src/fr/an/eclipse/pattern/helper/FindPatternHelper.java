@@ -74,9 +74,10 @@ public class FindPatternHelper extends AbstractASTRewriteRefactoringHelper {
 		
 		return res;
 	}
-
+	
 	@Override
-	protected void doRefactorUnit(CompilationUnit unit, Object refactoringInfoObject) throws Exception {
+	protected void doRefactorUnit(CompilationUnit unit, Object preparedParams) {
+		// do nothing
 	}
 	
 }
