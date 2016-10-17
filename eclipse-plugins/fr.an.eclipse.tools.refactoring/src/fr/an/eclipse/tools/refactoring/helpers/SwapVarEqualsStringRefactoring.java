@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.AbstractTypeDeclaration;
@@ -17,15 +16,13 @@ import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.StringLiteral;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 
-import fr.an.eclipse.pattern.helper.AbstractASTRewriteRefactoringHelper;
-
 /**
  * refactoring helper class, for swaping 
  * <code>var.equals("string literal"</code>" 
  * --> <code>stringliteral".equals(var)</code>
  */
 @SuppressWarnings("unchecked")
-public class SwapVarEqualsStringRefactoringHelper extends AbstractASTRewriteRefactoringHelper {
+public class SwapVarEqualsStringRefactoring extends AbstractParsedCompilationUnitsRefactoring {
 
 	private static class RefactoringInfo {
 		final List<SwapVarEqualsRefactoringInfo> ls = new ArrayList<SwapVarEqualsRefactoringInfo>();
@@ -45,12 +42,17 @@ public class SwapVarEqualsStringRefactoringHelper extends AbstractASTRewriteRefa
 		
 	}
 	
-	public SwapVarEqualsStringRefactoringHelper(IProgressMonitor monitor, Set<ICompilationUnit> selection) {
-		super(monitor, selection);
+	public SwapVarEqualsStringRefactoring(Set<ICompilationUnit> selection) {
+		super(selection);
 	}
 	
 	// -------------------------------------------------------------------------
 	
+	@Override
+	public String getName() {
+		return "swap var.equals(\"string\")";
+	}
+
 	@Override
 	protected Object prepareRefactorUnit(CompilationUnit unit) throws Exception {
 		final RefactoringInfo res = new RefactoringInfo();

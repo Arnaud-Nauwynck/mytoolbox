@@ -2,7 +2,6 @@ package fr.an.eclipse.pattern.helper;
 
 import java.util.List;
 import java.util.Set;
-import java.util.function.Consumer;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jdt.core.ICompilationUnit;
@@ -18,7 +17,7 @@ import fr.an.eclipse.pattern.impl.ASTNodeToPatternBuilder;
 /**
  *
  */
-public class CodeToPatternHelper extends AbstractCompilationUnitActionHelper {
+public class CodeToPatternHelper extends AbstractParsedCompilationUnitsActionHelper {
 
 	private String result;
 	

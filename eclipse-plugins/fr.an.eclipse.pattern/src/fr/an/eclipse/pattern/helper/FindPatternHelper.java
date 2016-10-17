@@ -18,7 +18,7 @@ import fr.an.eclipse.pattern.util.ConsoleUtil;
 /**
  *
  */
-public class FindPatternHelper extends AbstractASTRewriteRefactoringHelper {
+public class FindPatternHelper extends AbstractParsedCompilationUnitsActionHelper {
 
 	private IPattern<?> pattern;
 	
@@ -30,23 +30,7 @@ public class FindPatternHelper extends AbstractASTRewriteRefactoringHelper {
 	// -------------------------------------------------------------------------
 	
 	@Override
-	protected Object prepareRefactorUnit(CompilationUnit unit) throws Exception {
-		Object res = null;
-		
-		if (javaElements != null) {
-			// TODO
-//			ICompilationUnit icu = (ICompilationUnit) unit.getJavaElement();
-//			List<IJavaElement> jeltsCU = getJavaElementsForCompilationUnit(icu); 
-//			
-//			// CompilationUnit.
-//			for(IJavaElement jelt : jeltsCU) {
-//				// IBinding[] bindings = astParser.createBindings(new IJavaElement[] { jelt }, null);
-//			}
-		} else {
-			// TODO
-		}
-		
-		
+	protected void handleUnit(CompilationUnit unit) {
 		@SuppressWarnings("unchecked")
 		IPattern<CompilationUnit> pattern2 = (IPattern<CompilationUnit>) pattern;
 
@@ -71,13 +55,6 @@ public class FindPatternHelper extends AbstractASTRewriteRefactoringHelper {
 		}
 		
 		ConsoleUtil.log(matchResText.toString(), new Object[0]);
-		
-		return res;
-	}
-	
-	@Override
-	protected void doRefactorUnit(CompilationUnit unit, Object preparedParams) {
-		// do nothing
 	}
 	
 }

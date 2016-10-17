@@ -17,9 +17,11 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jdt.core.ICompilationUnit;
+import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.IMethod;
 import org.eclipse.jdt.core.JavaCore;
+import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.core.NamingConventions;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTNode;
@@ -126,24 +128,33 @@ public class JavaASTUtil {
 	}
 	
 	public static void rewriteASTDocument(IProgressMonitor monitor, CompilationUnit unit) {
-		IPath path = unit.getJavaElement().getPath();
-		ConsoleUtil.debug("writing changes to %s", path.toString());
+		ICompilationUnit icu = (ICompilationUnit) unit.getJavaElement();
+		String cuPath = icu.getPath().toString();
+		ConsoleUtil.debug("writing changes to %s", cuPath);
 
 		try {
-			ITextFileBufferManager bufferManager = FileBuffers.getTextFileBufferManager();
-			ITextFileBuffer textFileBuffer = bufferManager.getTextFileBuffer(path, LocationKind.IFILE);
-			// retrieve the buffer
-			IDocument document = textFileBuffer.getDocument();
-	
-			Map<?,?> options = JavaCore.getOptions();
-			TextEdit textEdit = unit.rewrite(document, options);
-			textEdit.apply(document);
-	
-			// commit changes to underlying file
-			textFileBuffer.commit(monitor, false);
-		} catch(Exception ex) {
-    		throw new RuntimeException(ex);
-    	}
+			if (! icu.hasUnsavedChanges()) {
+				return;
+			}
+			icu.commitWorkingCopy(true, monitor);
+		} catch (JavaModelException ex) {
+			throw new RuntimeException("Failed to save " + cuPath, ex);
+		}
+//		try {
+//			ITextFileBufferManager bufferManager = FileBuffers.getTextFileBufferManager();
+//			ITextFileBuffer textFileBuffer = bufferManager.getTextFileBuffer(path, LocationKind.IFILE);
+//			// retrieve the buffer
+//			IDocument document = textFileBuffer.getDocument();
+//	
+//			Map<?,?> options = JavaCore.getOptions();
+//			TextEdit textEdit = unit.rewrite(document, options);
+//			textEdit.apply(document);
+//	
+//			// commit changes to underlying file
+//			textFileBuffer.commit(monitor, false);
+//		} catch(Exception ex) {
+//    		throw new RuntimeException(ex);
+//    	}
 	}
 
 	

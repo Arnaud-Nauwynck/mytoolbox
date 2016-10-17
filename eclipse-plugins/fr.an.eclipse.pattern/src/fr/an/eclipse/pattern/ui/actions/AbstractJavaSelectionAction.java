@@ -1,7 +1,5 @@
 package fr.an.eclipse.pattern.ui.actions;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -10,16 +8,13 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.MultiStatus;
 import org.eclipse.core.runtime.Status;
-import org.eclipse.core.runtime.SubProgressMonitor;
+import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IJavaElement;
-import org.eclipse.jdt.internal.ui.javaeditor.JavaTextSelection;
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.dialogs.ErrorDialog;
-import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.viewers.ISelection;
-import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IActionDelegate;
@@ -27,7 +22,6 @@ import org.eclipse.ui.IObjectActionDelegate;
 import org.eclipse.ui.IWorkbenchPart;
 
 import fr.an.eclipse.pattern.PatternUIPlugin;
-import fr.an.eclipse.pattern.util.CompilationUnitScanner;
 import fr.an.eclipse.pattern.util.ConsoleUtil;
 import fr.an.eclipse.pattern.util.JavaElementUtil;
 import fr.an.eclipse.pattern.util.UiUtil;
@@ -96,7 +90,7 @@ public abstract class AbstractJavaSelectionAction implements IObjectActionDelega
 						return Status.CANCEL_STATUS;
 					}
 
-					SubProgressMonitor subProgressMonitor = new SubProgressMonitor(monitor, 2);
+					SubMonitor subProgressMonitor = SubMonitor.convert(monitor, 2);
 					doRun(status, subProgressMonitor, resultMessage, compilationUnits);
 					subProgressMonitor.done();
 					monitor.worked(9);
@@ -114,15 +108,6 @@ public abstract class AbstractJavaSelectionAction implements IObjectActionDelega
 			            
 			        } else {
 			            ConsoleUtil.log("done " + resultMessage);
-
-			            final String msg = "done:" + truncateText(resultMessage.toString());
-                        Display.getDefault().asyncExec(new Runnable() {
-                            public void run() {
-                                MessageDialog.openInformation(getShell(),
-                                                              "Joto Eclipse Plug-in",
-                                                              msg);
-                            }
-                        });
 			        }
 					
 			        monitor.done();
@@ -141,43 +126,13 @@ public abstract class AbstractJavaSelectionAction implements IObjectActionDelega
 
 	protected Set<ICompilationUnit> selectionToCompilationUnits(IProgressMonitor monitor) {
 		List<IJavaElement> jelts = getSelectedJavaElements();
-
-		CompilationUnitScanner recursiveCUScanner = new CompilationUnitScanner();
-		try {
-			recursiveCUScanner.recursiveScanCompilationUnits(monitor, jelts);
-		} catch(Exception ex) {
-			throw new RuntimeException(ex);
-		}
-		Set<ICompilationUnit> res = recursiveCUScanner.getResultCompilationUnits();  
-				
-		return res;
+		return JavaElementUtil.javaElementsToICompilationUnits(monitor, jelts);
 	}
 
 	protected List<IJavaElement> getSelectedJavaElements() {
-		List<IJavaElement> jelts = null;
-		Object[] resources = null;
-		if (selection instanceof IStructuredSelection) {
-			IStructuredSelection structuredSel = (IStructuredSelection) selection;
-			resources = structuredSel.toArray();
-			jelts = JavaElementUtil.resourcesToJavaElements(resources);
-		} else if (selection instanceof JavaTextSelection) {
-			JavaTextSelection sel2 = (JavaTextSelection) selection;
-			try {
-				IJavaElement[] elts = sel2.resolveElementAtOffset();
-				jelts = new ArrayList<>(Arrays.asList(elts));
-			} catch(Exception ex) {
-				resources = new Object[0];	
-			}
-		} else {
-			// TODO unsupported selection (text selection ?...)
-			resources = new Object[0]; 
-		}
-		
-		if (jelts == null && resources != null) {
-			jelts = JavaElementUtil.resourcesToJavaElements(resources);
-		}
-		return jelts;
+		return JavaElementUtil.selectionToJavaElements(selection);
 	}
+	
 	
 	private String truncateText(String p) {
 		String res = p;

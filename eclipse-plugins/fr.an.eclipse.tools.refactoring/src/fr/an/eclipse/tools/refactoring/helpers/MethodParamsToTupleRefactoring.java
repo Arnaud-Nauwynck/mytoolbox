@@ -7,7 +7,6 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IMethod;
 import org.eclipse.jdt.core.dom.AST;
@@ -20,11 +19,9 @@ import org.eclipse.jdt.core.dom.FieldAccess;
 import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.IExtendedModifier;
 import org.eclipse.jdt.core.dom.IMethodBinding;
-import org.eclipse.jdt.core.dom.MarkerAnnotation;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.Modifier;
-import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.Type;
@@ -33,12 +30,10 @@ import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.eclipse.jdt.internal.core.SourceMethod;
 
-import fr.an.eclipse.pattern.helper.AbstractASTRewriteRefactoringHelper;
 import fr.an.eclipse.pattern.util.JavaASTUtil;
 import fr.an.eclipse.pattern.util.JavaNamingUtil;
 
-@SuppressWarnings("unchecked")
-public class MethodParamsToTupleRefactoringHelper extends AbstractASTRewriteRefactoringHelper {
+public class MethodParamsToTupleRefactoring extends AbstractParsedCompilationUnitsRefactoring {
 
 	private static final String FQN_Path = "javax.ws.rs.Path";
 	private static final String FQN_POST_TupleBodyFragments = "fr.an.refactor.POST_TupleBodyFragments";
@@ -62,15 +57,22 @@ public class MethodParamsToTupleRefactoringHelper extends AbstractASTRewriteRefa
 		Set<MethodInvocation> methodCallers = new LinkedHashSet<>();
 	}
 	
+
 	// ------------------------------------------------------------------------
 	
-	public MethodParamsToTupleRefactoringHelper(IProgressMonitor monitor, Set<ICompilationUnit> selection) {
-		super(monitor, selection);
+	public MethodParamsToTupleRefactoring(Set<ICompilationUnit> compilationUnits) {
+		super(compilationUnits);
 	}
+
+	// ------------------------------------------------------------------------
 	
-	// -------------------------------------------------------------------------
-	
-	@SuppressWarnings("unchecked")
+
+	@Override
+	public String getName() {
+		return "MethodParamsToTuple";
+	}
+
+
 	@Override
 	protected Object prepareRefactorUnit(CompilationUnit unit) throws Exception {
 		final RefactoringInfo res = new RefactoringInfo();
@@ -125,7 +127,7 @@ public class MethodParamsToTupleRefactoringHelper extends AbstractASTRewriteRefa
 		MethodRefactoringInfo methRefactor = new MethodRefactoringInfo(node);
 		res.ls.add(methRefactor);
 
-		List<SourceMethod> methodRefs = JavaASTUtil.searchMethodInvocations(meth);
+		final List<SourceMethod> methodRefs = JavaASTUtil.searchMethodInvocations(meth);
 		if (!methodRefs.isEmpty()) {
 			for(SourceMethod methodRef : methodRefs) {
 				ICompilationUnit cuRef = methodRef.getCompilationUnit();
@@ -278,5 +280,6 @@ public class MethodParamsToTupleRefactoringHelper extends AbstractASTRewriteRefa
 			// callerArgs.clear();
 		}
 	}
-	
+
+
 }

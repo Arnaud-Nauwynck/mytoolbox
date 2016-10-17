@@ -6,12 +6,16 @@ import java.util.Set;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.MultiStatus;
 import org.eclipse.jdt.core.ICompilationUnit;
+import org.eclipse.jdt.internal.ui.refactoring.actions.RefactoringStarter;
+import org.eclipse.jdt.ui.refactoring.RefactoringSaveHelper;
+import org.eclipse.swt.widgets.Display;
 
 import fr.an.eclipse.pattern.ui.actions.AbstractJavaSelectionAction;
-import fr.an.eclipse.tools.refactoring.helpers.SwapVarEqualsStringRefactoringHelper;
+import fr.an.eclipse.tools.refactoring.helpers.SwapVarEqualsStringRefactoring;
+import fr.an.eclipse.tools.refactoring.helpers.SwapVarEqualsStringRefactoringWizard;
 
+@SuppressWarnings("restriction")
 public class SwapVarEqualsStringRefactoringAction extends AbstractJavaSelectionAction {
-
 
 	// -------------------------------------------------------------------------
 	
@@ -20,18 +24,10 @@ public class SwapVarEqualsStringRefactoringAction extends AbstractJavaSelectionA
 	}
 	
 	protected void doRun(MultiStatus status, IProgressMonitor monitor, StringBuffer resultMessage, Set<ICompilationUnit> compilationUnits) {
-		SwapVarEqualsStringRefactoringHelper helper = null;
-		try {
-			helper = new SwapVarEqualsStringRefactoringHelper(monitor, compilationUnits);
-			helper.run();
-			
-			resultMessage.append("done " + getActionTitle() + ": " 
-					+ helper.getStringResult());
-		} catch(Exception ex) {
-			resultMessage.append("FAILED refactor " + getActionTitle() + ": " 
-					+ "ERROR: " + ex.getMessage()
-					+ "\n" + helper.getStringResult());
-		}
+		SwapVarEqualsStringRefactoring refactoring= new SwapVarEqualsStringRefactoring(compilationUnits);
+		Display.getDefault().syncExec(() -> { 
+			new RefactoringStarter().activate(new SwapVarEqualsStringRefactoringWizard(refactoring), getShell(), "swap var.equals(\"string\")", RefactoringSaveHelper.SAVE_NOTHING);
+		});
 	}
 
 	

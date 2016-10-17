@@ -16,40 +16,13 @@ public class HelloRest {
 		return "Hello ";
 	}
 
-	public static class Meth1Request {
-		public String arg1;
-		public String arg2;
-
-		public Meth1Request(String arg1, String arg2) {
-			this.arg1 = arg1;
-			this.arg2 = arg2;
-		}
-	}
-
 	@POST_TupleBodyFragments
-	public String meth1(Meth1Request req) {
-		String arg1 = req.arg1;
-		String arg2 = req.arg2;
+	public String meth1(String arg1, String arg2) {
 		return "Hello " + arg1;
 	}
 
-	public static class Meth2Request {
-		public String arg1;
-		public String arg2;
-		public int arg3;
-
-		public Meth2Request(String arg1, String arg2, int arg3) {
-			this.arg1 = arg1;
-			this.arg2 = arg2;
-			this.arg3 = arg3;
-		}
-	}
-
 	@POST_TupleBodyFragments
-	public String meth2(Meth2Request req) {
-		String arg1 = req.arg1;
-		String arg2 = req.arg2;
-		int arg3 = req.arg3;
+	public String meth2(String arg1, String arg2, int arg3) {
 		return "Hello " + arg1;
 	}
 

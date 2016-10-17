@@ -21,6 +21,9 @@ import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.internal.corext.util.SuperTypeHierarchyCache;
+import org.eclipse.jdt.internal.ui.javaeditor.JavaTextSelection;
+import org.eclipse.jface.viewers.ISelection;
+import org.eclipse.jface.viewers.IStructuredSelection;
 
 /**
  * 
@@ -34,6 +37,44 @@ public final class JavaElementUtil {
 	
 	// -------------------------------------------------------------------------
 
+
+	public static List<IJavaElement> selectionToJavaElements(ISelection selection) {
+		List<IJavaElement> jelts = null;
+		Object[] resources = null;
+		if (selection instanceof IStructuredSelection) {
+			IStructuredSelection structuredSel = (IStructuredSelection) selection;
+			resources = structuredSel.toArray();
+			jelts = JavaElementUtil.resourcesToJavaElements(resources);
+		} else if (selection instanceof JavaTextSelection) {
+			JavaTextSelection sel2 = (JavaTextSelection) selection;
+			try {
+				IJavaElement[] elts = sel2.resolveElementAtOffset();
+				jelts = new ArrayList<>(Arrays.asList(elts));
+			} catch(Exception ex) {
+				resources = new Object[0];	
+			}
+		} else {
+			// TODO unsupported selection (text selection ?...)
+			resources = new Object[0]; 
+		}
+		
+		if (jelts == null && resources != null) {
+			jelts = JavaElementUtil.resourcesToJavaElements(resources);
+		}
+		return jelts;
+	}
+	
+	public static Set<ICompilationUnit> javaElementsToICompilationUnits(IProgressMonitor monitor, List<IJavaElement> jelts) {
+		CompilationUnitScanner recursiveCUScanner = new CompilationUnitScanner();
+		try {
+			recursiveCUScanner.recursiveScanCompilationUnits(monitor, jelts);
+		} catch(Exception ex) {
+			throw new RuntimeException(ex);
+		}
+		return recursiveCUScanner.getResultCompilationUnits();
+	}
+
+	
 	@SuppressWarnings("unchecked")
 	public static <T> T findFirstAncestorOfType(IJavaElement elt, Class<T> ancestorType) {
 		T res = null;

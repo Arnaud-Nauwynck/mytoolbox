@@ -1,4 +1,4 @@
-package fr.an.eclipse.pattern.helper;
+package fr.an.eclipse.tools.refactoring.helpers;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -7,27 +7,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
-import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
-import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.OperationCanceledException;
 import org.eclipse.jdt.core.ICompilationUnit;
-import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.dom.CompilationUnit;
-import org.eclipse.ui.IWorkbenchWindow;
+import org.eclipse.jdt.core.refactoring.CompilationUnitChange;
+import org.eclipse.jface.text.Document;
+import org.eclipse.ltk.core.refactoring.Change;
+import org.eclipse.ltk.core.refactoring.CompositeChange;
+import org.eclipse.ltk.core.refactoring.Refactoring;
+import org.eclipse.ltk.core.refactoring.RefactoringStatus;
+import org.eclipse.text.edits.TextEdit;
 
 import fr.an.eclipse.pattern.PatternUIPlugin;
-import fr.an.eclipse.pattern.util.ConsoleUtil;
 import fr.an.eclipse.pattern.util.JavaASTUtil;
-import fr.an.eclipse.pattern.util.JavaElementUtil;
 
 /**
  * 
  */
-public abstract class AbstractCompilationUnitActionHelper {
+public abstract class AbstractParsedCompilationUnitsRefactoring extends Refactoring {
 
 	protected static class CancelRefactorUnitException extends RuntimeException {
 		private static final long serialVersionUID = 1L;
@@ -36,15 +37,13 @@ public abstract class AbstractCompilationUnitActionHelper {
 		}
 	}
 
-	protected List<IJavaElement> javaElements;
 	protected Set<ICompilationUnit> compilationUnits;
+
 	private int countCompilationUnit;
 	private int errorCount;
 	protected int countReplacement;
 	protected StringBuilder messages = new StringBuilder();
 	protected ICompilationUnit currentUnit;
-	protected IProgressMonitor monitor;
-	protected IWorkbenchWindow window;
 
 	protected static class CURefactoring {
 		// WeakReference<CompilationUnit> cu;
@@ -53,8 +52,8 @@ public abstract class AbstractCompilationUnitActionHelper {
 	}
 	
 	protected static class CURefactoringCallback<T> {
-		BiConsumer<CompilationUnit,T> updateCallback;
 		T preparedResult;
+		BiConsumer<CompilationUnit,T> updateCallback;
 		
 		public CURefactoringCallback(BiConsumer<CompilationUnit, T> updateCallback, T preparedResult) {
 			this.updateCallback = updateCallback;
@@ -71,7 +70,7 @@ public abstract class AbstractCompilationUnitActionHelper {
 	protected static class DependentRefactoringCallback<T> {
 		Function<CompilationUnit,T> prepareCallback;
 		BiConsumer<CompilationUnit,T> updateCallback;
-		Object preparedResult;
+		T preparedResult;
 		
 		public DependentRefactoringCallback(Function<CompilationUnit,T> prepareCallback,
 				BiConsumer<CompilationUnit,T> updateCallback) {
@@ -87,15 +86,12 @@ public abstract class AbstractCompilationUnitActionHelper {
 	
 	// ------------------------------------------------------------------------
 	
-	protected AbstractCompilationUnitActionHelper(IProgressMonitor monitor, Set<ICompilationUnit> compilationUnits, List<IJavaElement> javaElements) {
-		this.monitor = monitor;
+	protected AbstractParsedCompilationUnitsRefactoring(Set<ICompilationUnit> compilationUnits) {
 		this.compilationUnits = compilationUnits;
-		this.javaElements = javaElements;
 	}
 	
 	// ------------------------------------------------------------------------
 	
-
 	public String getStringResult() {
 		return "count " 
 		+ " files=" + countCompilationUnit
@@ -127,9 +123,22 @@ public abstract class AbstractCompilationUnitActionHelper {
 		throw new CancelRefactorUnitException(msg);
 	}
 
-	public void run() throws Exception {
-		try {
+
+	@Override
+	public RefactoringStatus checkInitialConditions(IProgressMonitor pm) throws CoreException, OperationCanceledException {
+		return new RefactoringStatus(); // RefactoringStatus.createInfoStatus("checkInitialConditions ok?");
+	}
+
+	@Override
+	public RefactoringStatus checkFinalConditions(IProgressMonitor pm) throws CoreException, OperationCanceledException {
+		return new RefactoringStatus(); // RefactoringStatus.createInfoStatus("checkFinalConditions ok?");
+	}
 	
+	@Override
+	public Change createChange(IProgressMonitor monitor) throws CoreException {
+		CompositeChange res = new CompositeChange(getName());
+		final String changeName = getName();
+		try {
 			monitor.setTaskName("scanning Compilation Units");
 			
 			onPreRun();
@@ -142,24 +151,31 @@ public abstract class AbstractCompilationUnitActionHelper {
 			monitor.beginTask("treating files", compilationUnits.size());
 			
 			// Step 1 / 4: handle prepare compilation units
-			for(ICompilationUnit unit : compilationUnits) {
+			for(ICompilationUnit icu : compilationUnits) {
 				// monitor.setTaskName(unit.getElementName());
 				
-				if (isAcceptCompilationUnit(unit)) {
+				if (isAcceptCompilationUnit(icu)) {
 					countCompilationUnit++;
 					
-					IProgressMonitor subProgress = 
-						new NullProgressMonitor();
-						// new SubProgressMonitor(monitor, 100);  ///??? does not work... blink on screen, display last level?
-					IProgressMonitor oldMonitor = monitor;
-					monitor = subProgress; // HACK...
+					monitor.worked(1);
+					monitor.subTask(icu.getElementName());
+
 					try {
-						
-						handleCompilationUnit(unit);
-						
+						CompilationUnit unit = JavaASTUtil.parseCompilationUnit(icu, monitor);
+
+						currentUnit = (ICompilationUnit) unit.getJavaElement();
+
+						handleUnit(unit);
+
+					} catch(Exception ex) {
+						addErrorMsg("Failed to execute refactoring in unit " + icu.getElementName() + ":" + ex.toString());
+						PatternUIPlugin.logWarning("Failed to execute refactoring in unit " + icu.getElementName(), ex);
+					} catch(Throwable ex) {
+						addErrorMsg("Failed to execute refactoring in unit " + icu.getElementName() + ":" + ex.toString());
+						PatternUIPlugin.logError("Failed to execute refactoring in unit " + icu.getElementName(), ex);
 					} finally {
-						monitor = oldMonitor; // RESTORE from HACK...
-					}
+						currentUnit = null;
+					}						
 				}
 				
 				if (monitor.isCanceled()) {
@@ -190,9 +206,11 @@ public abstract class AbstractCompilationUnitActionHelper {
 					}
 					
 					for(DependentRefactoringCallback<?> depCallback : depCallbacks) {
+						@SuppressWarnings("unchecked")
+						DependentRefactoringCallback<Object> depCallback2 = (DependentRefactoringCallback<Object>) depCallback;
 						try {
 							// *** prepare dependent callback ***
-							depCallback.preparedResult = depCallback.prepareCallback.apply(depCU);
+							depCallback2.preparedResult = depCallback2.prepareCallback.apply(depCU);
 							
 						} catch(Exception ex) {
 							addErrorMsg("Failed to execute refactoring in unit " + depICU.getElementName() + ":" + ex.toString());
@@ -209,14 +227,16 @@ public abstract class AbstractCompilationUnitActionHelper {
 				}
 			}
 			
-			
-			
+
 			// Step 3 / 4: update callbacks
 			for(Map.Entry<ICompilationUnit,CURefactoring> e : compilationUnitRefactorings.entrySet()) { 
+				ICompilationUnit icu = e.getKey();
 				CURefactoring cuRefactoring = e.getValue();
-				
 				CompilationUnit cu = cuRefactoring.cu; // .get();
 				
+				String source = icu.getSource();
+				Document document = new Document(source);
+				   
 				cu.recordModifications();
 
 				for(CURefactoringCallback<?> cuCallback : cuRefactoring.callbacks) {
@@ -228,51 +248,58 @@ public abstract class AbstractCompilationUnitActionHelper {
 					updateCallback2.accept(cu, prepared);
 				}
 
+				CompilationUnitChange cuChange = new CompilationUnitChange(changeName, icu);
+				TextEdit textEdit = cu.rewrite(document, icu.getJavaProject().getOptions(true));
+				cuChange.setEdit(textEdit);
+				
+				res.add(cuChange);
+				
 				countReplacement++;
-		
-				JavaASTUtil.uiRewriteASTDocument(monitor, cu);
 			}
-
 
 			
 			// step 4 / 4: dependency update callback
 			if (! dependentCompilationUnitRefactorings.isEmpty()) {
 				
 				for(Map.Entry<ICompilationUnit,DependentCURefactoring> depCUTreatment : dependentCompilationUnitRefactorings.entrySet()) {
-					ICompilationUnit depICU = depCUTreatment.getKey();
+					ICompilationUnit icu = depCUTreatment.getKey();
 					DependentCURefactoring depCURefactoring = depCUTreatment.getValue();
 					List<DependentRefactoringCallback<?>> depCallbacks = depCURefactoring.callbacks;
 					
-					CompilationUnit depCU = depCURefactoring.cu.get();
+					CompilationUnit cu = depCURefactoring.cu.get();
 					depCURefactoring.cu.clear();
-					if (depCU == null) {
+					if (cu == null) {
 						try {
-							depCU = JavaASTUtil.parseCompilationUnit(depICU, monitor);
+							cu = JavaASTUtil.parseCompilationUnit(icu, monitor);
 						} catch(Exception ex) {
-							addErrorMsg("Failed to parse dependent unit " + depICU.getElementName() + ":" + ex.toString());
+							addErrorMsg("Failed to parse dependent unit " + icu.getElementName() + ":" + ex.toString());
 							continue;
 						} catch(Throwable ex) {
-							addErrorMsg("Failed to parse dependent unit " + depICU.getElementName() + ":" + ex.toString());
+							addErrorMsg("Failed to parse dependent unit " + icu.getElementName() + ":" + ex.toString());
 							continue;
 						}
 					}
 					
-					depCU.recordModifications();
+					String source = icu.getSource();
+					Document document = new Document(source);
+
+					cu.recordModifications();
 					
 					for(DependentRefactoringCallback<?> depCallback : depCallbacks) {
+						// if (depCallback.preparedResult == null) continue;
 						try {
 							@SuppressWarnings("unchecked")
 							BiConsumer<CompilationUnit,Object> updateCallback2 = (BiConsumer<CompilationUnit,Object>) depCallback.updateCallback;
 							
 							// *** update dependent callback ***
-							updateCallback2.accept(depCU, depCallback.preparedResult);
+							updateCallback2.accept(cu, depCallback.preparedResult);
 							
 						} catch(Exception ex) {
-							addErrorMsg("Failed to execute refactoring in unit " + depICU.getElementName() + ":" + ex.toString());
-							PatternUIPlugin.logWarning("Failed to execute refactoring in unit " + depICU.getElementName(), ex);
+							addErrorMsg("Failed to execute refactoring in unit " + icu.getElementName() + ":" + ex.toString());
+							PatternUIPlugin.logWarning("Failed to execute refactoring in unit " + icu.getElementName(), ex);
 						} catch(Throwable ex) {
-							addErrorMsg("Failed to execute refactoring in unit " + depICU.getElementName() + ":" + ex.toString());
-							PatternUIPlugin.logError("Failed to execute refactoring in unit " + depICU.getElementName(), ex);
+							addErrorMsg("Failed to execute refactoring in unit " + icu.getElementName() + ":" + ex.toString());
+							PatternUIPlugin.logError("Failed to execute refactoring in unit " + icu.getElementName(), ex);
 						}
 						
 						if (monitor.isCanceled()) {
@@ -280,7 +307,11 @@ public abstract class AbstractCompilationUnitActionHelper {
 						}
 					}
 					
-					JavaASTUtil.uiRewriteASTDocument(monitor, depCU);
+					CompilationUnitChange cuChange = new CompilationUnitChange(changeName, icu);
+					TextEdit textEdit = cu.rewrite(document, icu.getJavaProject().getOptions(true));
+					cuChange.addEdit(textEdit);
+					
+					res.add(cuChange);
 				}
 			}
 			
@@ -288,8 +319,11 @@ public abstract class AbstractCompilationUnitActionHelper {
 			addErrorMsg("Failed :" + ex.toString());
 		} finally {
 			onFinishRun();
-		}
+		}		
+		
+		return res;
 	}
+
 
 	/** overrideable */
 	protected void onPreRun() {
@@ -304,38 +338,29 @@ public abstract class AbstractCompilationUnitActionHelper {
 		return true;
 	}
 	
-	
-	protected void handleCompilationUnit(ICompilationUnit cu) {
-		monitor.worked(1);
-		monitor.subTask(cu.getElementName());
-
+	protected void handleUnit(CompilationUnit unit) throws Exception {
+		Object preparedRefactoredParams;
 		try {
-			CompilationUnit unit = JavaASTUtil.parseCompilationUnit(cu, monitor);
-
-			currentUnit = (ICompilationUnit) unit.getJavaElement();
-
-			handleUnit(unit);
-
-		} catch(Exception ex) {
-			addErrorMsg("Failed to execute refactoring in unit " + cu.getElementName() + ":" + ex.toString());
-			PatternUIPlugin.logWarning("Failed to execute refactoring in unit " + cu.getElementName(), ex);
-		} catch(Throwable ex) {
-			addErrorMsg("Failed to execute refactoring in unit " + cu.getElementName() + ":" + ex.toString());
-			PatternUIPlugin.logError("Failed to execute refactoring in unit " + cu.getElementName(), ex);
-		} finally {
-			currentUnit = null;
+			// *** the Biggy : prepare refactoring ***
+			preparedRefactoredParams = prepareRefactorUnit(unit);
+		} catch(CancelRefactorUnitException ex) {
+			return;
+		}
+		
+		if (preparedRefactoredParams != null) {
+			BiConsumer<CompilationUnit,Object> updateCallback = (cu, prepared) -> doRefactorUnit(cu, prepared);  
+			addCompilationUnitTreatment(unit, updateCallback, preparedRefactoredParams);
 		}
 	}
+	
+	// -------------------------------------------------------------------------
 
-
-	protected abstract void handleUnit(CompilationUnit unit) throws Exception;
+	protected abstract Object prepareRefactorUnit(CompilationUnit unit) throws Exception;
+	
+	protected abstract void doRefactorUnit(CompilationUnit unit, Object preparedParams);
+	
 	
 
-	
-	public List<IJavaElement> getJavaElements() {
-		return javaElements;
-	}
-	
 	protected <T> void addCompilationUnitTreatment(CompilationUnit cu, 
 			BiConsumer<CompilationUnit,T> updateCallback,
 			T preparedResult
@@ -358,17 +383,6 @@ public abstract class AbstractCompilationUnitActionHelper {
 			dependentCompilationUnitRefactorings.put(cu, tmp);
 		}
 		tmp.callbacks.add(new DependentRefactoringCallback<T>(prepareCallback, updateCallback));
-	}
-	
-	
-	public List<IJavaElement> getJavaElementsForCompilationUnit(ICompilationUnit cu) {
-		List<IJavaElement> res = new ArrayList<IJavaElement>(); 
-		for(IJavaElement jelt : javaElements) {
-			if (cu == JavaElementUtil.findFirstAncestorOfType(jelt, ICompilationUnit.class)) {
-				res.add(jelt);
-			}
-		}
-		return res;
 	}
 	
 }
