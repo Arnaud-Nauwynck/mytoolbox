@@ -1,7 +1,11 @@
 package fr.an.eclipse.pattern.util;
 
+import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jdt.core.IJavaElement;
+import org.eclipse.jdt.core.IMethod;
 import org.eclipse.jdt.core.ISourceReference;
+import org.eclipse.jdt.core.IType;
+import org.eclipse.jdt.core.ITypeHierarchy;
 import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.CompilationUnit;
@@ -18,9 +22,9 @@ public class ASTNode2IJavaElementUtil {
 	public static IJavaElement getJavaElement(ASTNode node) {
 		int type = node.getNodeType();
 		if (type == ASTNode.TYPE_DECLARATION)
-			return getJavaElement((TypeDeclaration)node);
+			return toIType((TypeDeclaration)node);
 		else if (type == ASTNode.METHOD_DECLARATION)
-			return getJavaElement((MethodDeclaration)node);
+			return bindingToIMethod((MethodDeclaration)node);
 		else if (type == ASTNode.FIELD_DECLARATION)
 			return getJavaElement((FieldDeclaration)node);
 		else if (type == ASTNode.COMPILATION_UNIT)
@@ -41,10 +45,10 @@ public class ASTNode2IJavaElementUtil {
 	 * @param node can be null
 	 * @return
 	 */
-	public static IJavaElement getJavaElement(MethodDeclaration node) {
+	public static IMethod bindingToIMethod(MethodDeclaration node) {
 		IMethodBinding binding = node.resolveBinding();
 		if (binding != null) // Bindings can be null
-			return binding.getJavaElement();
+			return (IMethod) binding.getJavaElement();
 		return null;
 	}
 	
@@ -65,13 +69,22 @@ public class ASTNode2IJavaElementUtil {
 		return null;
 	}
 	
-	public static IJavaElement getJavaElement(TypeDeclaration node) {
+	public static IType toIType(TypeDeclaration node) {
 		ITypeBinding binding = node.resolveBinding();
 		if (binding != null) // Bindings can be null
-			return binding.getJavaElement();
+			return (IType) binding.getJavaElement();
 		return null;
 	}
 
+	public static ITypeHierarchy newTypeHierarchyOf(IProgressMonitor monitor, TypeDeclaration typeDecl) {
+		IType itype = ASTNode2IJavaElementUtil.toIType(typeDecl);
+		try {
+			return itype.newTypeHierarchy(monitor);
+		} catch (JavaModelException ex) {
+			throw new RuntimeException(ex);
+		}
+	}
+	
 	/** alias for compilationUnit.getJavaElement().. */ 
 	public static IJavaElement getJavaElement(CompilationUnit node) {
 		return node.getJavaElement();

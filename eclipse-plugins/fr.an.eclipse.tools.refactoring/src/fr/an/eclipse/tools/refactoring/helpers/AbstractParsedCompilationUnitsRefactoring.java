@@ -45,6 +45,9 @@ public abstract class AbstractParsedCompilationUnitsRefactoring extends Refactor
 	protected StringBuilder messages = new StringBuilder();
 	protected ICompilationUnit currentUnit;
 
+	// temporary (threadLocal?) within createChange() 
+	protected IProgressMonitor monitor;
+	
 	protected static class CURefactoring {
 		// WeakReference<CompilationUnit> cu;
 		CompilationUnit cu;
@@ -138,6 +141,7 @@ public abstract class AbstractParsedCompilationUnitsRefactoring extends Refactor
 	public Change createChange(IProgressMonitor monitor) throws CoreException {
 		CompositeChange res = new CompositeChange(getName());
 		final String changeName = getName();
+		this.monitor = monitor;
 		try {
 			monitor.setTaskName("scanning Compilation Units");
 			
@@ -319,6 +323,7 @@ public abstract class AbstractParsedCompilationUnitsRefactoring extends Refactor
 			addErrorMsg("Failed :" + ex.toString());
 			throw new RuntimeException("Failed", ex);
 		} finally {
+			this.monitor = null;
 			onFinishRun();
 		}		
 		

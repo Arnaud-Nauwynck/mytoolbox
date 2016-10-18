@@ -191,8 +191,8 @@ public class JavaASTUtil {
 
 	// return the method node that is an ancestor of the given node, or null if
 	// not found
-	public static ASTNode getTypeAncestor(ASTNode node) {
-		return getAncestorByType(node, ASTNode.TYPE_DECLARATION);
+	public static TypeDeclaration getTypeDeclarationAncestor(ASTNode node) {
+		return (TypeDeclaration) getAncestorByType(node, ASTNode.TYPE_DECLARATION);
 	}
 
 	// returns an ancestor node of the given type, or null if not found
@@ -734,9 +734,13 @@ public class JavaASTUtil {
 	 * @param astNode
 	 * @return
 	 */
-	@SuppressWarnings("unchecked")
 	public static <T extends ASTNode> T cloneASTNode(final T astNode) {
 		final AST ast = astNode.getAST();
+		return cloneASTNode(astNode, ast);
+	}
+	
+	@SuppressWarnings("unchecked")
+	public static <T extends ASTNode> T cloneASTNode(final T astNode, AST ast) {
 		final ASTNode createdInstance = ast.createInstance(astNode.getClass());
 		final List<?> structuralPropertiesForType = astNode.structuralPropertiesForType();
 		for (final Object o : structuralPropertiesForType) {
@@ -744,12 +748,12 @@ public class JavaASTUtil {
 			if (descriptor.isChildListProperty()) {
 				final List<Object> list = (List<Object>) astNode.getStructuralProperty(descriptor);
 				for (final Object propertyValue : (List<Object>) astNode.getStructuralProperty(descriptor)) {
-					list.add(propertyValue instanceof ASTNode ? cloneASTNode((ASTNode) propertyValue) : propertyValue);
+					list.add(propertyValue instanceof ASTNode ? cloneASTNode((ASTNode) propertyValue, ast) : propertyValue);
 				}
 			} else {
 				final Object propertyValue = astNode.getStructuralProperty(descriptor);
 				createdInstance.setStructuralProperty(descriptor,
-						propertyValue instanceof ASTNode ? cloneASTNode((ASTNode) propertyValue) : propertyValue);
+						propertyValue instanceof ASTNode ? cloneASTNode((ASTNode) propertyValue, ast) : propertyValue);
 			}
 		}
 		return (T) createdInstance;

@@ -14,6 +14,7 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.IJavaProject;
+import org.eclipse.jdt.core.IMethod;
 import org.eclipse.jdt.core.IPackageFragment;
 import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.ITypeHierarchy;
@@ -85,6 +86,10 @@ public final class JavaElementUtil {
 			}
 		}
 		return res;
+	}
+	
+	public static IType findFirstTypeDeclarationAncestor(IJavaElement elt) {
+		return findFirstAncestorOfType(elt, IType.class);
 	}
 	
 	public static List<IJavaElement> resourcesToJavaElements(Object[] resources) {
@@ -191,4 +196,37 @@ public final class JavaElementUtil {
         
         return SuperTypeHierarchyCache.getTypeHierarchy(type);
     }
+	
+
+	public static class MethodOverrideElement {
+		public final IType superType;
+		public final IMethod superMeth;
+		public final IType subType;
+		public final IMethod overrideMethod;
+		public MethodOverrideElement(IType superType, IMethod superMeth, IType subType, IMethod overrideMethod) {
+			this.superType = superType;
+			this.superMeth = superMeth;
+			this.subType = subType;
+			this.overrideMethod = overrideMethod;
+		}
+	}
+	
+	public static List<IMethod> findSubTypeMethodsOverride(IType superType, IMethod meth, ITypeHierarchy typeHierarchy) {
+		List<IMethod> res = new ArrayList<>();
+		IType[] subtypes = typeHierarchy.getAllSubtypes(superType);
+		if (subtypes != null && subtypes.length > 0) {
+			for(IType subType : subtypes) {
+				// ICompilationUnit subTypeICU = subType.getCompilationUnit();
+				IMethod[] subTypeMethods = subType.findMethods(meth); // find method in subType matching signature of (super type) method
+				if (subTypeMethods != null && subTypeMethods.length > 0) {
+					for (IMethod subTypeMethod : subTypeMethods) {
+						// assert subType == subTypeMethod.getAncestor(IJavaElement.TYPE;
+						res.add(subTypeMethod);
+					}
+				}
+			}
+		}
+		return res;
+	}
+	
 }

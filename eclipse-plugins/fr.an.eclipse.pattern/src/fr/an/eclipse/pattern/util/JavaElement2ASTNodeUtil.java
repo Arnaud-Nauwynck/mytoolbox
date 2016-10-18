@@ -4,11 +4,14 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IJavaElement;
+import org.eclipse.jdt.core.IMethod;
 import org.eclipse.jdt.core.ISourceReference;
 import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.eclipse.jdt.core.dom.MethodDeclaration;
+import org.eclipse.jdt.internal.corext.refactoring.structure.ASTNodeSearchUtil;
 
 
 public class JavaElement2ASTNodeUtil {
@@ -38,6 +41,7 @@ public class JavaElement2ASTNodeUtil {
 		return -1;
 	}
 
+	// cf also ASTNodeSearchUtil.getDeclarationNodes() ??
 	public static ASTNode getNode(IJavaElement element) {
 		if (element instanceof ISourceReference) {
 			ISourceReference ref = (ISourceReference)element;
@@ -54,6 +58,16 @@ public class JavaElement2ASTNodeUtil {
 		return null;
 	}
 
+	@SuppressWarnings("restriction")
+	public static MethodDeclaration getMethodDeclarationNode(IMethod meth, CompilationUnit cu) {
+		try {
+			return ASTNodeSearchUtil.getMethodDeclarationNode(meth, cu);
+		} catch (JavaModelException ex) {
+			throw new RuntimeException("Failed", ex);
+		}
+	}
+	
+		
 	// returns the most specific ASTNode for the given compilation unit and
 	// line
 	public static ASTNode getNodeAtLine(ICompilationUnit unit, int line) {
