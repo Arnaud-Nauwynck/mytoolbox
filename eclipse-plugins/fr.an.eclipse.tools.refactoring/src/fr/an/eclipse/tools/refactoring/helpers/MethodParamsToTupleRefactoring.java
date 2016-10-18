@@ -14,7 +14,9 @@ import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.AbstractTypeDeclaration;
 import org.eclipse.jdt.core.dom.Assignment;
 import org.eclipse.jdt.core.dom.Block;
+import org.eclipse.jdt.core.dom.ClassInstanceCreation;
 import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.FieldAccess;
 import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.IExtendedModifier;
@@ -33,6 +35,7 @@ import org.eclipse.jdt.internal.core.SourceMethod;
 import fr.an.eclipse.pattern.util.JavaASTUtil;
 import fr.an.eclipse.pattern.util.JavaNamingUtil;
 
+@SuppressWarnings("unchecked")
 public class MethodParamsToTupleRefactoring extends AbstractParsedCompilationUnitsRefactoring {
 
 	private static final String FQN_Path = "javax.ws.rs.Path";
@@ -45,16 +48,24 @@ public class MethodParamsToTupleRefactoring extends AbstractParsedCompilationUni
 	
 	private static class MethodRefactoringInfo {
 		MethodDeclaration meth;
-
-		public MethodRefactoringInfo(MethodDeclaration meth) {
+		String requestClassName;
+		
+		public MethodRefactoringInfo(MethodDeclaration meth, String requestClassName) {
 			this.meth = meth;
+			this.requestClassName = requestClassName;
 		}
 		
 	}
 
 	protected static class PreparedDependentRefactor {
 		MethodRefactoringInfo methCalleeRefactor;
-		Set<MethodInvocation> methodCallers = new LinkedHashSet<>();
+		Set<MethodInvocation> methodCallers;
+		
+		public PreparedDependentRefactor(MethodRefactoringInfo methCalleeRefactor, Set<MethodInvocation> methodCallers) {
+			this.methCalleeRefactor = methCalleeRefactor;
+			this.methodCallers = methodCallers;
+		}
+		
 	}
 	
 
@@ -124,7 +135,9 @@ public class MethodParamsToTupleRefactoring extends AbstractParsedCompilationUni
 		IMethodBinding methBinding = node.resolveBinding();
 		IMethod meth = (IMethod) methBinding.getJavaElement();
 
-		MethodRefactoringInfo methRefactor = new MethodRefactoringInfo(node);
+		String requestTypeName = JavaNamingUtil.capitalize(node.getName().getIdentifier()) + "Request";
+
+		MethodRefactoringInfo methRefactor = new MethodRefactoringInfo(node, requestTypeName);
 		res.ls.add(methRefactor);
 
 		final List<SourceMethod> methodRefs = JavaASTUtil.searchMethodInvocations(meth);
@@ -140,20 +153,20 @@ public class MethodParamsToTupleRefactoring extends AbstractParsedCompilationUni
 	
 	protected PreparedDependentRefactor doPrepareDependentUnit(CompilationUnit unit, 
 			MethodRefactoringInfo methCalleeRefactor, SourceMethod methodCallerRef) {
-		final PreparedDependentRefactor res = new PreparedDependentRefactor();
+		final Set<MethodInvocation> methodCallers = new LinkedHashSet<>();
 		final IMethodBinding calleeMethodBinding = methCalleeRefactor.meth.resolveBinding();
 		ASTVisitor visitor = new ASTVisitor() {
 			@Override
 			public boolean visit(MethodInvocation node) {
 				IMethodBinding methBind = node.resolveMethodBinding();
 				if (methBind.isEqualTo(calleeMethodBinding)) {
-					res.methodCallers.add(node);
+					methodCallers.add(node);
 				}
 				return super.visit(node);
 			}
 		};
 		unit.accept(visitor);
-		return res;
+		return new PreparedDependentRefactor(methCalleeRefactor, methodCallers);
 	}
 	
 	
@@ -165,12 +178,15 @@ public class MethodParamsToTupleRefactoring extends AbstractParsedCompilationUni
 			MethodDeclaration meth = methInfo.meth;
 			List<SingleVariableDeclaration> paramDecls = meth.parameters();
 			
-			String requestTypeName = JavaNamingUtil.capitalize(meth.getName().getIdentifier()) + "Request";
-
+			String requestTypeName = methInfo.requestClassName;
 			doRefactor_addRequestClassDecl(meth, requestTypeName);
 			
 			String reqParamName = "req"; // assume not ambiguous (not already used in method body)
 			doRefactor_addLocalRequestVars(meth, reqParamName);
+			
+			// also find sub-class override for meth
+			// TODO 
+			
 			
 			paramDecls.clear();
 			SingleVariableDeclaration reqParamDecl = ast.newSingleVariableDeclaration();
@@ -195,7 +211,12 @@ public class MethodParamsToTupleRefactoring extends AbstractParsedCompilationUni
 	private void doRefactor_addLocalRequestVars(MethodDeclaration meth, String reqParamName) {
 		final AST ast = meth.getAST();
 		final List<SingleVariableDeclaration> paramDecls = meth.parameters();
-		List<Statement> stmts = meth.getBody().statements();
+		Block body = meth.getBody();
+		if (body == null) { 
+			// interface..
+			return;
+		}
+		List<Statement> stmts = body.statements();
 		for(int i = 0; i < paramDecls.size(); i++) {
 			SingleVariableDeclaration paramDecl = paramDecls.get(i);
 			Type paramType = paramDecl.getType();
@@ -275,9 +296,19 @@ public class MethodParamsToTupleRefactoring extends AbstractParsedCompilationUni
 	}
 	
 	protected void doUpdateDependentUnit(CompilationUnit unit, PreparedDependentRefactor prepared) {
+		final AST ast = unit.getAST();
 		for(MethodInvocation methCaller : prepared.methodCallers) {
-			List callerArgs = methCaller.arguments();
-			// callerArgs.clear();
+			List<Expression> callerArgs = methCaller.arguments();
+			List<Expression> detachedCallerArgs = new ArrayList<>(callerArgs);
+			callerArgs.clear();
+			ClassInstanceCreation newReq = ast.newClassInstanceCreation();
+			String reqClassName = prepared.methCalleeRefactor.requestClassName;
+			Type type = ast.newSimpleType(ast.newSimpleName(reqClassName));
+			newReq.setType(type );
+			for(Expression e : detachedCallerArgs) {
+				newReq.arguments().add(e);
+			}
+			callerArgs.add(newReq);
 		}
 	}
 

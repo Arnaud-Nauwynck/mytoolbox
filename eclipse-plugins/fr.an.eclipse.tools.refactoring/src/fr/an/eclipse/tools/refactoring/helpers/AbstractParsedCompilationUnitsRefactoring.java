@@ -309,7 +309,7 @@ public abstract class AbstractParsedCompilationUnitsRefactoring extends Refactor
 					
 					CompilationUnitChange cuChange = new CompilationUnitChange(changeName, icu);
 					TextEdit textEdit = cu.rewrite(document, icu.getJavaProject().getOptions(true));
-					cuChange.addEdit(textEdit);
+					cuChange.setEdit(textEdit);
 					
 					res.add(cuChange);
 				}
@@ -317,6 +317,7 @@ public abstract class AbstractParsedCompilationUnitsRefactoring extends Refactor
 			
 		} catch(Exception ex) {
 			addErrorMsg("Failed :" + ex.toString());
+			throw new RuntimeException("Failed", ex);
 		} finally {
 			onFinishRun();
 		}		
