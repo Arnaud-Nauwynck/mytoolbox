@@ -98,6 +98,7 @@ public class MethodParamsToTupleRefactoring extends AbstractParsedCompilationUni
 		}		
 	}
 	private static class SubCURefactoringInfo {
+		@SuppressWarnings("unused")
 		CompilationUnit subTypesCU;
 		List<SubTypeDeclRefactoringInfo> ls;
 		public SubCURefactoringInfo(CompilationUnit subTypesCU, List<SubTypeDeclRefactoringInfo> ls) {
@@ -106,6 +107,7 @@ public class MethodParamsToTupleRefactoring extends AbstractParsedCompilationUni
 		}
 	}
 	private static class SubTypeDeclRefactoringInfo {
+		@SuppressWarnings("unused")
 		TypeDeclaration subType;
 		List<OverrideMethodRefactoringInfo> ls;
 		public SubTypeDeclRefactoringInfo(TypeDeclaration subType, List<OverrideMethodRefactoringInfo> ls) {
@@ -342,6 +344,7 @@ public class MethodParamsToTupleRefactoring extends AbstractParsedCompilationUni
 			}
 			// addMsg("Found " + typeDeclRefactoring.ls.size() + " " + FQN_POST_TupleBodyFragments);
 		}
+		JavaASTUtil.addImport(unit, "java.io.Serializable");
 	}
 
 	private void doRefactor_changeSignatureParamsRequest(MethodDeclaration meth, MethodRefactoringInfo methRefactoring) {
@@ -415,6 +418,8 @@ public class MethodParamsToTupleRefactoring extends AbstractParsedCompilationUni
 		requestTypeDecl.setName(ast.newSimpleName(requestTypeName));
 		requestTypeDecl.modifiers().add(ast.newModifier(Modifier.ModifierKeyword.PUBLIC_KEYWORD));
 		requestTypeDecl.modifiers().add(ast.newModifier(Modifier.ModifierKeyword.STATIC_KEYWORD));
+		requestTypeDecl.superInterfaceTypes().add(ast.newSimpleType(ast.newSimpleName("Serializable"))); // fqn: java.io.Serializable 
+		
 		// add fields
 		for(ParamRefactoring paramRefactoring : methRefactoring.paramRefactorings) {
 			Type paramType = paramRefactoring.paramType;

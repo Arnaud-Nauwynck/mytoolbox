@@ -1,24 +1,28 @@
 package fr.an.test.jaxrs;
 
+import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 
 import org.springframework.stereotype.Component;
 
+import fr.an.refactor.POST_TupleBodyFragments;
+
 @Component
 @Path("/hello")
-public class HelloRest implements IHelloRest {
+public class HelloRest {
 
-	@Override
+
+	@GET
 	public String message() {
 		return "Hello ";
 	}
 
-	@Override
+	@POST_TupleBodyFragments
 	public String meth1(String arg1, String arg2) {
 		return "Hello " + arg1;
 	}
 
-	@Override
+	@POST_TupleBodyFragments
 	public String meth2(String arg1, String arg2, int arg3) {
 		return "Hello " + arg1;
 	}

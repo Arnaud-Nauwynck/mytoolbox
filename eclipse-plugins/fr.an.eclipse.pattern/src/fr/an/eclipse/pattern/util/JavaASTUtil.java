@@ -538,12 +538,14 @@ public class JavaASTUtil {
 		@SuppressWarnings("unchecked")
 		final List<ImportDeclaration> imports = (List<ImportDeclaration>) unit.imports();
 		
-		ImportDeclaration importToAdd = unitAST.newImportDeclaration();
-		String[] fqnElts = tokenizeFQN(fqn);
-		Name name = unitAST.newName(fqnElts); 
-		importToAdd.setName(name);
-		// TOADD should insert at correct location.. (cf organize import preferences in project!)
-		imports.add(importToAdd);
+		if (null == findImport(imports, fqn)) {
+			ImportDeclaration importToAdd = unitAST.newImportDeclaration();
+			String[] fqnElts = tokenizeFQN(fqn);
+			Name name = unitAST.newName(fqnElts); 
+			importToAdd.setName(name);
+			// TOADD should insert at correct location.. (cf organize import preferences in project!)
+			imports.add(importToAdd);
+		}
 	}
 
 	public static void addImports(final CompilationUnit unit, Collection<String> fqns) {
