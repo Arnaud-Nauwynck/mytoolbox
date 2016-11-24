@@ -45,7 +45,12 @@
                menubarPath="org.eclipse.jdt.ui.refactoring.menu/ANToolsRefactoringMenu">
         </action>
 		
-		         
+		<action
+               class="fr.an.eclipse.tools.refactoring.actions.MethodCtxParamRemoveRefactoringAction"
+               id="fr.an.eclipse.tools.refactoring.actions.MethodCtxParamRemoveRefactoringAction"
+               label="recursive remove Ctx param from methods"
+               menubarPath="org.eclipse.jdt.ui.refactoring.menu/ANToolsRefactoringMenu">
+        </action>
       </objectContribution>
    </extension>
    
