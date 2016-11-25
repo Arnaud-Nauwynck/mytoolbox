@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>fr.an.eclipse</groupId>
   <artifactId>eclipse-plugins</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>1.0.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
 <!-- 
@@ -15,22 +15,25 @@
   	<tycho.version>0.26.0</tycho.version>
   </properties>
  
+ <!-- 
+ .. will resolve p2 dependencies to ~/.m2/repository/p2/osgi/bundle/
+  -->
   <repositories>
 <!-- 
- -->  
     <repository>
       <id>local-eclipse-neon</id>
       <url>file:///home/arnaud/eclipsemirror/neon</url>
       <layout>p2</layout>
     </repository>
+ -->  
 
 <!--
+-->
     <repository>
       <id>eclipse-neon</id>
       <url>http://download.eclipse.org/releases/neon</url>
       <layout>p2</layout>
     </repository>
--->
   </repositories>
 
 
@@ -40,6 +43,8 @@
    -->
     <module>fr.an.eclipse.pattern</module>
     <module>fr.an.eclipse.tools.refactoring</module>
+    <module>fr.an.eclipse.refactoring.feature</module>
+    <module>fr.an.eclipse.update</module>
   </modules>
 
   <build>

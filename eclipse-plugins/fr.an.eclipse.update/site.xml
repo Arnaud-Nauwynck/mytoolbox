@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<site>
+   <feature url="features/fr.an.eclipse.refactoring.feature_1.0.0.201611250811.jar" id="fr.an.eclipse.refactoring.feature" version="1.0.0.201611250811">
+      <category name="fr.an.eclipse.tools.refactoring"/>
+   </feature>
+   <category-def name="fr.an.eclipse.tools.refactoring" label="AN Eclipse Refactoring Tools"/>
+</site>
