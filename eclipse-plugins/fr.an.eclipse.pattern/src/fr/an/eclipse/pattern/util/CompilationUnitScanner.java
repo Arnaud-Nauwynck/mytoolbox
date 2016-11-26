@@ -2,6 +2,7 @@ package fr.an.eclipse.pattern.util;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -14,6 +15,8 @@ import org.eclipse.jdt.core.IPackageFragment;
 import org.eclipse.jdt.core.IPackageFragmentRoot;
 import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.internal.core.PackageFragment;
+
+import fr.an.eclipse.pattern.util.ICompilationUnitFilter.DefaultIncludeExcludeNameCompilationUnitFilter;
 
 /**
  * helper to expand resources (package, package fragment...) to find all ICompilationUnit
@@ -169,4 +172,20 @@ public class CompilationUnitScanner {
 		return result;
 	}
 
+	public void recursiveScanCUsOfParentProjects(IProgressMonitor monitor, 
+			Collection<? extends IJavaElement> javaElements) throws JavaModelException {
+		Set<IJavaProject> alreadyScannedPrjs = new HashSet<>();
+		for(IJavaElement javaElement : javaElements) {
+			IJavaProject iprj = (IJavaProject) javaElement.getAncestor(IJavaElement.JAVA_PROJECT);
+			if (iprj == null) {
+				continue;//??
+			}
+			if (alreadyScannedPrjs.contains(iprj)) {
+				continue;
+			}
+			alreadyScannedPrjs.add(iprj);
+			recursiveScanCompilationUnits(monitor, iprj);
+		}
+	}
+	
 }

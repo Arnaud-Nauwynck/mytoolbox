@@ -145,7 +145,7 @@ public abstract class AbstractParsedCompilationUnitsRefactoring extends Refactor
 		try {
 			monitor.setTaskName("scanning Compilation Units");
 			
-			onPreRun();
+			onPreRun(monitor);
 			
 			if (monitor.isCanceled()) {
 				throw new OperationCanceledException();
@@ -331,8 +331,9 @@ public abstract class AbstractParsedCompilationUnitsRefactoring extends Refactor
 	}
 
 
-	/** overrideable */
-	protected void onPreRun() {
+	/** overrideable 
+	 * @param monitor TODO*/
+	protected void onPreRun(IProgressMonitor monitor) {
 	}
 
 	/** overrideable */

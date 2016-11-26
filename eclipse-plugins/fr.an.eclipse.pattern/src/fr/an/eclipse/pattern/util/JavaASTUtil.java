@@ -2,6 +2,7 @@ package fr.an.eclipse.pattern.util;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -65,8 +66,10 @@ import org.eclipse.swt.widgets.Monitor;
 import org.eclipse.text.edits.TextEdit;
 
 import fr.an.eclipse.pattern.PatternUIPlugin;
+import fr.an.eclipse.pattern.util.ICompilationUnitFilter.DefaultIncludeExcludeNameCompilationUnitFilter;
 
 
+@SuppressWarnings("unchecked")
 public class JavaASTUtil {
 
 
@@ -85,6 +88,35 @@ public class JavaASTUtil {
 		return unit;
 	}
 	
+	public static void scanAndHandlePackagesCompilationUnits(IProgressMonitor monitor, 
+			Collection<? extends IJavaElement> elementOfProjects,
+			Collection<String> scanPackages,
+			String handlerMessage,
+			Consumer<CompilationUnit> handler) {
+		// scan packages (in projects of elements)
+		monitor.beginTask("scan packages", 1);
+		DefaultIncludeExcludeNameCompilationUnitFilter cuFilter = new DefaultIncludeExcludeNameCompilationUnitFilter(null, 
+				new IncludeExcludePatternList(IncludeExcludePatternList.prefixToPatterns(scanPackages), null));
+		CompilationUnitScanner cuScanner = new CompilationUnitScanner();
+		cuScanner.setFilter(cuFilter);
+		try {
+			cuScanner.recursiveScanCUsOfParentProjects(monitor, elementOfProjects);
+		} catch (JavaModelException e) {
+			throw new RuntimeException("Failed", e);
+		}
+		Collection<ICompilationUnit> scannedCus = cuScanner.getResultCompilationUnits();
+		monitor.done();
+		
+		// parse and handle CompilationUnits
+		monitor.beginTask(handlerMessage, scannedCus.size());
+		for(ICompilationUnit scannedCU : scannedCus) {
+			CompilationUnit cu = JavaASTUtil.parseCompilationUnit(scannedCU, monitor);
+			handler.accept(cu);
+			monitor.internalWorked(1);
+		}
+		monitor.done();
+	}
+			
 
 	public static void uiHandleAndRewrite(IProgressMonitor monitor, final CompilationUnit unit, Consumer<CompilationUnit> handler) throws CoreException {
 		if (UiUtil.isSWTGraphicsThread()) {
@@ -243,7 +275,6 @@ public class JavaASTUtil {
 		return res;
 	}
 
-	@SuppressWarnings("unchecked")
 	public static List<String> methodToParameterTypeNames(MethodDeclaration meth) {
 		List<String> res = new ArrayList<String>(meth.parameters().size());
 		for (SingleVariableDeclaration param : (List<SingleVariableDeclaration>) meth.parameters()) {
@@ -254,7 +285,6 @@ public class JavaASTUtil {
 		return res;
 	}
 	
-	@SuppressWarnings("unchecked")
 	public static MethodDeclaration findMethod(TypeDeclaration typeDecl, String methodName,  List<String> paramTypeNames) {
 		MethodDeclaration res = null;
 		for(BodyDeclaration elt : (List<BodyDeclaration>) typeDecl.bodyDeclarations()) {
@@ -274,7 +304,6 @@ public class JavaASTUtil {
 		String getterName = NamingConventions.suggestGetterName(prj, fieldName, modifiers, false, new String[0]);
 		String isGetterName = NamingConventions.suggestGetterName(prj, fieldName, modifiers, true, new String[0]);
 		List<String> paramTypeNames = new ArrayList<String>(); 
-		@SuppressWarnings("unchecked")
 		List<BodyDeclaration> bodyDeclarations = (List<BodyDeclaration>) typeDecl.bodyDeclarations();
 		for(BodyDeclaration elt : bodyDeclarations) {
 			if (elt instanceof MethodDeclaration) {
@@ -643,21 +672,32 @@ public class JavaASTUtil {
     }
 
 	public static Annotation findAnnotationFQN(BodyDeclaration decl, String annotationFQN) {
-		Annotation res = null;
-		String annotationUnqualifiedName = fqnToUnqualifiedName(annotationFQN);
-		@SuppressWarnings("unchecked")
 		List<IExtendedModifier> declModifiers = decl.modifiers();
+		Annotation res = findAnnotation(declModifiers, annotationFQN);
+		return res;
+	}
+
+	public static Annotation findAnnotation(List<IExtendedModifier> declModifiers, String annotationFQN) {
+		String annotationUnqualifiedName = fqnToUnqualifiedName(annotationFQN);
 		for(IExtendedModifier declModifier : declModifiers) {
 			if (declModifier instanceof Annotation) {
 				Annotation annotation = (Annotation) declModifier;
-				String annotationNameStr = annotation.getTypeName().getFullyQualifiedName(); // qualified or unqualified!
-				if (annotationNameStr.equals(annotationFQN) || annotationNameStr.equals(annotationUnqualifiedName)) {
-					res = annotation;
-					break;
+				IAnnotationBinding annotationBinding = annotation.resolveAnnotationBinding();
+				ITypeBinding annotationTypeBinding = (annotationBinding != null)? annotationBinding.getAnnotationType() : null;
+				if (annotationTypeBinding != null) {
+					if (annotationFQN.equals(annotationTypeBinding.getQualifiedName())) {
+						return annotation;
+					}
+				} else {
+					// unable to resolve annotation?
+					String annotationNameStr = annotation.getTypeName().getFullyQualifiedName(); // qualified or unqualified!
+					if (annotationNameStr.equals(annotationFQN) || annotationNameStr.equals(annotationUnqualifiedName)) {
+						return annotation;
+					}
 				}
 			}
 		}
-		return res;
+		return null;
 	}
 	
 	public static SingleMemberAnnotation findSingleMemberAnnotationFQN(BodyDeclaration decl, String fqn) {

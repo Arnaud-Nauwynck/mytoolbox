@@ -1,6 +1,7 @@
 package fr.an.eclipse.pattern.util;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -77,5 +78,17 @@ public class IncludeExcludePatternList {
 		return res;
 	}
 	
+	public static Pattern[] prefixToPatterns(Collection<String> prefixes) {
+		Pattern[] res = new Pattern[prefixes.size()];
+		int i = 0;
+		for(String prefix : prefixes) {
+			res[i++] = prefixToPattern(prefix);
+		}
+		return res;
+	}
+
+	public static Pattern prefixToPattern(String prefix) {
+		return Pattern.compile(Pattern.quote(prefix) + ".*");
+	}
 	
 }
