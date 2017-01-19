@@ -16,6 +16,8 @@ import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.StringLiteral;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 
+import fr.an.eclipse.pattern.util.AbstractParsedCompilationUnitsRefactoring;
+
 /**
  * refactoring helper class, for swaping 
  * <code>var.equals("string literal"</code>" 

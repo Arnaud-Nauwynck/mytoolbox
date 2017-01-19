@@ -38,6 +38,7 @@ import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.eclipse.jdt.internal.core.SourceMethod;
 
 import fr.an.eclipse.pattern.util.ASTNode2IJavaElementUtil;
+import fr.an.eclipse.pattern.util.AbstractParsedCompilationUnitsRefactoring;
 import fr.an.eclipse.pattern.util.JavaASTUtil;
 import fr.an.eclipse.pattern.util.JavaElement2ASTNodeUtil;
 import fr.an.eclipse.pattern.util.JavaElementUtil;

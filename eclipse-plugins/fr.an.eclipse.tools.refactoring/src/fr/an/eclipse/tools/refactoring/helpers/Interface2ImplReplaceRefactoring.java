@@ -22,6 +22,7 @@ import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 
+import fr.an.eclipse.pattern.util.AbstractParsedCompilationUnitsRefactoring;
 import fr.an.eclipse.pattern.util.JavaASTUtil;
 import fr.an.eclipse.tools.refactoring.Activator;
 

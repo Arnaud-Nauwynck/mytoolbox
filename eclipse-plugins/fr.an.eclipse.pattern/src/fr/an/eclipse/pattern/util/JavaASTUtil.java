@@ -38,6 +38,7 @@ import org.eclipse.jdt.core.dom.IAnnotationBinding;
 import org.eclipse.jdt.core.dom.IExtendedModifier;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.ImportDeclaration;
+import org.eclipse.jdt.core.dom.MarkerAnnotation;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.Modifier;
 import org.eclipse.jdt.core.dom.Name;
@@ -820,6 +821,19 @@ public class JavaASTUtil {
 		} else {
 			throw new IllegalArgumentException("can not insert before .. not in a list");
 		}
+	}
+
+	public static void addMarkerAnnotation(
+			CompilationUnit cu, List<IExtendedModifier> modifiers, 
+			String annotationPackage, String annotationName) {
+		AST ast = cu.getAST();
+		// TODO .. may check for import name conflict and use explicit fqn
+		MarkerAnnotation ann = ast.newMarkerAnnotation();
+		ann.setTypeName(ast.newSimpleName(annotationName));
+		modifiers.add(ann);
+		
+		String fqn = annotationPackage + "." + annotationName;
+		addImport(cu, fqn);
 	}
 
 }

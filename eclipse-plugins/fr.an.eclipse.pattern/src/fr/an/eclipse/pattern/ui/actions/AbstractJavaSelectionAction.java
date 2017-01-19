@@ -30,7 +30,6 @@ import fr.an.eclipse.pattern.util.UiUtil;
 /**
  * 
  */
-@SuppressWarnings("restriction")
 public abstract class AbstractJavaSelectionAction implements IObjectActionDelegate {
 
 	private ISelection selection;

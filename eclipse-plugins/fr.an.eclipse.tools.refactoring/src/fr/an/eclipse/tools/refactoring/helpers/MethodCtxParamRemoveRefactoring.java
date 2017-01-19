@@ -14,6 +14,8 @@ import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 
+import fr.an.eclipse.pattern.util.AbstractParsedCompilationUnitsRefactoring;
+
 @SuppressWarnings({ "unchecked" })
 public class MethodCtxParamRemoveRefactoring extends AbstractParsedCompilationUnitsRefactoring {
 	

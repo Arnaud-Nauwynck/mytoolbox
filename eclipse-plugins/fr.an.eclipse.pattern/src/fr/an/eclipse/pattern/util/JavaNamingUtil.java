@@ -8,4 +8,12 @@ public class JavaNamingUtil {
 		}
 		return name.substring(0, 1).toUpperCase() + (name.length() > 1? name.substring(1) : "");
 	}
+	
+	public static String uncapitalize(String name) {
+		if (name == null || name.isEmpty()) {
+			return name;
+		}
+		return name.substring(0, 1).toLowerCase() + (name.length() > 1? name.substring(1) : "");
+	}
+	
 }

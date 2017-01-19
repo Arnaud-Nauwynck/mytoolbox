@@ -354,7 +354,8 @@ public class ASTNodeToPatternBuilder extends ASTVisitor {
 	@Override
 	public boolean visit(ArrayType node) {
 		ArrayTypePattern res = new ArrayTypePattern();
-		res.setComponentType(toPattern(node.getComponentType()));
+		// TODO
+		// res.setComponentType(toPattern(node.dimensions()));
 		return pushRes(res);
 	}
 
@@ -687,7 +688,7 @@ public class ASTNodeToPatternBuilder extends ASTVisitor {
 		res.setReturnType(toPattern(node.getReturnType2()));
 		res.setTypeParameters(toPattern(node.typeParameters()));
 		res.setExtraArrayDimensions(toPattern(node.getExtraDimensions()));
-		res.setThrownExceptions(toPattern(node.thrownExceptions()));
+		res.setThrownExceptions(toPattern(node.thrownExceptionTypes()));
 		res.setBody(toPattern(node.getBody()));
 		return pushRes(res);
 	}

@@ -44,7 +44,11 @@
     <module>fr.an.eclipse.pattern</module>
     <module>fr.an.eclipse.tools.refactoring</module>
     <module>fr.an.eclipse.refactoring.feature</module>
+    <module>fr.an.eclipse.tools.lombok</module>
+    
+    <!--  
     <module>fr.an.eclipse.update</module>
+     -->
   </modules>
 
   <build>

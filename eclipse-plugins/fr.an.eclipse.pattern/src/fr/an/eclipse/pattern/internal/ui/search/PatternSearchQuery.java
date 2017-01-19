@@ -5,9 +5,9 @@ import java.util.Map;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.MultiStatus;
+import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.core.runtime.SubProgressMonitor;
 import org.eclipse.jdt.core.ICompilationUnit;
-import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.internal.ui.JavaPluginImages;
@@ -50,7 +50,7 @@ public class PatternSearchQuery implements ISearchQuery {
 		// Step 1: find compilation units
 		MultiStatus status = PatternUIPlugin.newMultiStatus("find compilation units in scope");
 		ICompilationUnit[] icus;
-		SubProgressMonitor subMonitorFind= new SubProgressMonitor(monitor, 10);
+		SubMonitor subMonitorFind= SubMonitor.convert(monitor, 10);
 		try {
 			PatternSearchScope scope = fPatternData.getScope();
 			subMonitorFind.beginTask("find compilation units", scope.getRoots().length);
@@ -60,7 +60,7 @@ public class PatternSearchQuery implements ISearchQuery {
 		}
 		
 		// Step 2: iterate on ICompilationUnits, parse as AST and execute ASTPAttern 
-		SubProgressMonitor subMonitorPattern= new SubProgressMonitor(monitor, 90);
+		SubMonitor subMonitorPattern= SubMonitor.convert(monitor, 90);
 		subMonitorPattern.beginTask("analysing pattern in " + icus.length + " compilation units", icus.length);
 		for (ICompilationUnit icu : icus) {
 			if (monitor.isCanceled()) {

@@ -6,6 +6,8 @@ import java.util.List;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.IAdaptable;
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IField;
 import org.eclipse.jdt.core.IImportDeclaration;
@@ -13,10 +15,12 @@ import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.JavaModelException;
+import org.eclipse.jdt.core.dom.ASTNode;
+import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.eclipse.jdt.core.dom.NodeFinder;
 import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.formatter.IndentManipulation;
-import org.eclipse.jdt.core.search.IJavaSearchScope;
 import org.eclipse.jdt.internal.ui.JavaPlugin;
 import org.eclipse.jdt.internal.ui.actions.SelectionConverter;
 import org.eclipse.jdt.internal.ui.browsing.LogicalPackage;
@@ -41,7 +45,6 @@ import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
@@ -70,7 +73,9 @@ import fr.an.eclipse.pattern.ast.impl.StdExpressionASTPatterns.SimpleNamePattern
 import fr.an.eclipse.pattern.ast.impl.StdListPatterns.DefaultASTListPattern;
 import fr.an.eclipse.pattern.ast.impl.StdTypesASTPatterns.TypePattern;
 import fr.an.eclipse.pattern.ast.utils.PatternXStreamUtils;
+import fr.an.eclipse.pattern.impl.ASTNodeToPatternBuilder;
 import fr.an.eclipse.pattern.internal.ui.IASTPatternHelpContextIds;
+import fr.an.eclipse.pattern.util.JavaASTUtil;
 
 @SuppressWarnings("restriction")
 public class PatternSearchPage extends DialogPage implements ISearchPage {
@@ -670,16 +675,48 @@ public class PatternSearchPage extends DialogPage implements ISearchPage {
 		if (sel instanceof IStructuredSelection) {
 			initData= tryStructuredSelection((IStructuredSelection) sel);
 		} else if (sel instanceof ITextSelection) {
+			ITextSelection textSel = (ITextSelection) sel;
 			IEditorPart activeEditor= getActiveEditor();
 			if (activeEditor instanceof JavaEditor) {
+				JavaEditor javaEditor = (JavaEditor) activeEditor;
 				try {
-					IJavaElement[] elements= SelectionConverter.codeResolve((JavaEditor) activeEditor);
+					IJavaElement[] elements= SelectionConverter.codeResolve(javaEditor);
 					if (elements != null && elements.length > 0) {
 						initData= determineInitValuesFrom(elements[0]);
 					}
 				} catch (JavaModelException e) {
 					// ignore
 				}
+				
+				// TODO arn ...
+				if (initData == null) {
+					// try detect selection as AST ... 
+					ICompilationUnit icu= JavaPlugin.getDefault().getWorkingCopyManager().getWorkingCopy(javaEditor.getEditorInput(), true);
+					if (icu != null) {
+						IProgressMonitor monitor = new NullProgressMonitor(); // TODO
+						CompilationUnit cu = JavaASTUtil.parseCompilationUnit(icu, monitor);
+						
+						ASTNode astNode = null; // JavaElement2ASTNodeUtil.getNodeAtPosition(icu, textSel.getOffset(), false);
+						NodeFinder nodeFinder = new NodeFinder(cu, textSel.getOffset(), textSel.getLength());
+						astNode = nodeFinder.getCoveredNode();
+					
+						if (astNode != null) {
+							ASTNodeToPatternBuilder patternBuilder = new ASTNodeToPatternBuilder();
+							IPattern<?> pattern = patternBuilder.toPattern(astNode);
+							IJavaElement elem= null;
+							IWorkingSet[] workingSets= null;
+							int scope= 0; //??
+							initData= new SearchPatternData(pattern, elem, scope, workingSets);
+							
+							String patternText = PatternXStreamUtils.snewXStream().toXML(pattern);
+							initData.setPatternText(patternText);
+						}
+					}
+					
+					
+				}
+				
+				
 			}
 			if (initData == null) {
 				initData= trySimpleTextSelection((ITextSelection) sel);
@@ -696,7 +733,7 @@ public class PatternSearchPage extends DialogPage implements ISearchPage {
 		if (patternText == null) {
 			patternText = "";
 		}
-		fPatternDescriptionCombo.setText(patternText);
+		fPatternTextEditor.setText(patternText);
 		
 //		fFileTypeEditor.setFileTypes(initData.fileNamePatterns);
 	}

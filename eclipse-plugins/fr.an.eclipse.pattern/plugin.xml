@@ -2,6 +2,38 @@
 <?eclipse version="3.5"?>
 <plugin>
 
+   <extension point="org.eclipse.ui.commands">
+   	<command
+            categoryId="org.eclipse.search.ui.category.search"
+            description="Code To Pattern"
+            id="org.eclipse.ui.patterns.search.CodeToPattern"
+            name="Code To Pattern"
+            />
+   </extension>
+
+   <extension
+         point="org.eclipse.ui.actionSets">
+      <actionSet
+            label="%JavaSearchActionSet2.label"
+            description="%JavaSearchActionSet2.description"
+            visible="false"
+            id="org.eclipse.jdt.ui.SearchActionSet2">
+        <action
+           definitionId="org.eclipse.ui.patterns.search.CodeToPattern"
+           label="Code To Pattern"
+           retarget="true"
+           menubarPath="org.eclipse.search.menu/referencesSubMenu/group1"
+           allowLabelUpdate="true"
+           id="fr.an.eclipse.pattern.ui.actions.CodeToPatternAction">
+        </action>
+     </actionSet>
+   </extension>
+
+
+
+<!--
+
+               
    <extension point="org.eclipse.ui.actionSets">
       <actionSet
             label="Code Pattern Actions"
@@ -43,15 +75,15 @@
                label="Find Pattern"
                menubarPath="org.eclipse.jdt.ui.refactoring.menu/PatternMenu">
         </action>
-		
 		         
       </objectContribution>
    </extension>
+-->
    
-   
-<!-- =========================================================================== -->
-<!--  Search Page                                                            -->
-<!-- =========================================================================== -->
+
+<!--
+ Search Page
+-->
    <extension
          point="org.eclipse.search.searchPages">
       <page
@@ -63,7 +95,6 @@
             sizeHint="500,180"
             id="fr.an.eclipse.pattern.ui.search.PatternSearchPage">
       </page>
-            <!-- icon="$nl$/icons/full/obj16/jsearch_obj.gif" -->
    </extension>
    
    <extension

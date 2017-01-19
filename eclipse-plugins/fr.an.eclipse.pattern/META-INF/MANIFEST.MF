@@ -8,21 +8,19 @@ Bundle-Vendor: %providerName
 Bundle-Localization: plugin
 Require-Bundle: org.eclipse.ui,
  org.eclipse.core.runtime,
- org.eclipse.jdt,
  org.eclipse.jdt.core,
- org.eclipse.core.filebuffers,
- org.eclipse.core.filesystem,
  org.eclipse.core.resources,
  org.eclipse.jdt.ui,
  org.eclipse.jface.text,
- org.eclipse.jdt.launching,
- org.eclipse.ui.console;bundle-version="3.4.0",
+ org.eclipse.ui.console,
  org.eclipse.ui.workbench.texteditor,
- org.eclipse.ui.ide;bundle-version="[3.5.0,4.0.0)",
- org.apache.commons.lang;bundle-version="2.3.0",
- org.eclipse.search;bundle-version="3.7.0",
- org.eclipse.ui.editors;bundle-version="3.7.0",
- com.ibm.icu;bundle-version="4.4.2"
+ org.eclipse.ui.ide,
+ org.eclipse.search,
+ org.eclipse.ui.editors,
+ org.eclipse.ltk.core.refactoring,
+ org.eclipse.ltk.ui.refactoring,
+ org.eclipse.jdt.core.manipulation,
+ com.ibm.icu
 Bundle-ActivationPolicy: lazy
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Bundle-ClassPath: .,

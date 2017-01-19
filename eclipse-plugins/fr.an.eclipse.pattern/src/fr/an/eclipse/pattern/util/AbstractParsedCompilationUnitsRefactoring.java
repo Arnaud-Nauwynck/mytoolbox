@@ -1,4 +1,4 @@
-package fr.an.eclipse.tools.refactoring.helpers;
+package fr.an.eclipse.pattern.util;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -23,7 +23,6 @@ import org.eclipse.ltk.core.refactoring.RefactoringStatus;
 import org.eclipse.text.edits.TextEdit;
 
 import fr.an.eclipse.pattern.PatternUIPlugin;
-import fr.an.eclipse.pattern.util.JavaASTUtil;
 
 /**
  * 

@@ -1,9 +1,9 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Name: Refactoring
-Bundle-SymbolicName: fr.an.eclipse.tools.refactoring; singleton:=true
+Bundle-Name: AN Lombokify
+Bundle-SymbolicName: fr.an.eclipse.tools.lombokify;singleton:=true
 Bundle-Version: 1.0.0.qualifier
-Bundle-Activator: fr.an.eclipse.tools.refactoring.Activator
+Bundle-Activator: fr.an.eclipse.tools.lombokify.Activator
 Require-Bundle: org.eclipse.ui,
  org.eclipse.core.runtime,
  org.eclipse.core.resources,
