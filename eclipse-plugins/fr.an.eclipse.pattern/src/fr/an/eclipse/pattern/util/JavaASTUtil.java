@@ -830,7 +830,7 @@ public class JavaASTUtil {
 		// TODO .. may check for import name conflict and use explicit fqn
 		MarkerAnnotation ann = ast.newMarkerAnnotation();
 		ann.setTypeName(ast.newSimpleName(annotationName));
-		modifiers.add(ann);
+		modifiers.add(0, ann);
 		
 		String fqn = annotationPackage + "." + annotationName;
 		addImport(cu, fqn);

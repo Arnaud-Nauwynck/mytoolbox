@@ -79,61 +79,66 @@ public class LombokifyRefactoring extends AbstractParsedCompilationUnitsRefactor
 		ASTVisitor vis = new ASTVisitor() {
 			@Override
 			public boolean visit(TypeDeclaration node) {
-				List<BodyDeclaration> decls = node.bodyDeclarations();
-				Map<String,FieldGetterSetterDetection> fieldInfos = new HashMap<>();
-				// scan methods, detect getter/setter
-				for(BodyDeclaration decl : decls) {
-					if (decl instanceof MethodDeclaration) {
-						MethodDeclaration m = (MethodDeclaration) decl;
-						String methName = m.getName().getIdentifier();
-						if (methName.startsWith("get") || methName.startsWith("is")) {
-							String propName = MatchASTUtils.matchBasicGetterMeth(m);
-							if (propName != null) {
-								FieldGetterSetterDetection fo = getOrCreateField(fieldInfos, propName);
-								fo.getterDecl = m;
-							}
-						} else if (methName.startsWith("set")) {
-							String propName = MatchASTUtils.matchBasicSetterMeth(m);
-							if (propName != null) {
-								FieldGetterSetterDetection fo = getOrCreateField(fieldInfos, propName);
-								fo.setterDecl = m;
-							}
-						}
-					}
-				}
-				// scan fields, lookup corresponding getter/setter
-				for(BodyDeclaration decl : decls) {
-					if (decl instanceof FieldDeclaration) {
-						FieldDeclaration f = (FieldDeclaration) decl;
-						List<VariableDeclarationFragment> fieldDecls = f.fragments();
-						for(VariableDeclarationFragment fieldDecl : fieldDecls) {
-							String fieldName = fieldDecl.getName().getIdentifier();
-							FieldGetterSetterDetection fo = fieldInfos.get(fieldName);
-							if (fo != null) {
-								fo.fieldDecl = fieldDecl;
-							
-								if (fo.getterDecl != null) {
-									// refactor: add lombok annotation @Getter .. delete getter method
-									JavaASTUtil.addMarkerAnnotation(unit, fo.getterDecl.modifiers(), 
-											LOMBOK_PACKAGE, ANNOTATION_LOMBOK_GETTER_SIMPLENAME);
-									fo.getterDecl.delete();
-								}
-								if (fo.setterDecl != null) {
-									// refactor: add lombok annotation @Setter .. delete setter method
-									JavaASTUtil.addMarkerAnnotation(unit, fo.getterDecl.modifiers(), 
-											LOMBOK_PACKAGE, ANNOTATION_LOMBOK_SETTER_SIMPLENAME);
-									fo.setterDecl.delete();
-								}
-							}							
-						}
-					}
-				}
-				
+				doVisitRefactorGetterSetter(unit, node);
 				return super.visit(node);
 			}
-			
 		};
 		unit.accept(vis);
+	}
+
+	private void doVisitRefactorGetterSetter(CompilationUnit unit, TypeDeclaration node) {
+		List<BodyDeclaration> decls = node.bodyDeclarations();
+		Map<String,FieldGetterSetterDetection> fieldInfos = new HashMap<>();
+		// scan methods, detect getter/setter
+		for(BodyDeclaration decl : decls) {
+			if (decl instanceof MethodDeclaration) {
+				MethodDeclaration m = (MethodDeclaration) decl;
+				String methName = m.getName().getIdentifier();
+				if (methName.startsWith("get") || methName.startsWith("is")) {
+					String propName = MatchASTUtils.matchBasicGetterMeth(m);
+					if (propName != null) {
+						FieldGetterSetterDetection fo = getOrCreateField(fieldInfos, propName);
+						fo.getterDecl = m;
+					}
+				} else if (methName.startsWith("set")) {
+					String propName = MatchASTUtils.matchBasicSetterMeth(m);
+					if (propName != null) {
+						FieldGetterSetterDetection fo = getOrCreateField(fieldInfos, propName);
+						fo.setterDecl = m;
+					}
+				}
+			}
+		}
+		// scan fields, lookup corresponding getter/setter
+		for(BodyDeclaration decl : decls) {
+			if (decl instanceof FieldDeclaration) {
+				FieldDeclaration f = (FieldDeclaration) decl;
+				List<VariableDeclarationFragment> fieldDecls = f.fragments();
+				if (fieldDecls.size() != 1) {
+					continue; // unsupported yet! "private Type x, y;" ... only "private Type x;"
+				}
+				for(VariableDeclarationFragment fieldDecl : fieldDecls) {
+					String fieldName = fieldDecl.getName().getIdentifier();
+					FieldGetterSetterDetection fo = fieldInfos.get(fieldName);
+					if (fo != null) {
+						fo.fieldDecl = fieldDecl;
+						
+						if (fo.setterDecl != null) {
+							// refactor: add lombok annotation @Setter .. delete setter method
+							JavaASTUtil.addMarkerAnnotation(unit, f.modifiers(), 
+									LOMBOK_PACKAGE, ANNOTATION_LOMBOK_SETTER_SIMPLENAME);
+							fo.setterDecl.delete();
+						}
+						if (fo.getterDecl != null) {
+							// refactor: add lombok annotation @Getter .. delete getter method
+							JavaASTUtil.addMarkerAnnotation(unit, f.modifiers(), 
+									LOMBOK_PACKAGE, ANNOTATION_LOMBOK_GETTER_SIMPLENAME);
+							fo.getterDecl.delete();
+						}
+					}							
+				}
+			}
+		}
 	}
 	
 	protected static FieldGetterSetterDetection getOrCreateField(Map<String,FieldGetterSetterDetection> fieldInfos, String name) {
