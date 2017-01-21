@@ -4,17 +4,25 @@ import java.util.List;
 
 import org.eclipse.jdt.core.dom.Assignment;
 import org.eclipse.jdt.core.dom.Block;
+import org.eclipse.jdt.core.dom.ClassInstanceCreation;
 import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.ExpressionStatement;
 import org.eclipse.jdt.core.dom.FieldAccess;
 import org.eclipse.jdt.core.dom.IExtendedModifier;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.Modifier;
+import org.eclipse.jdt.core.dom.Modifier.ModifierKeyword;
+import org.eclipse.jdt.core.dom.Name;
+import org.eclipse.jdt.core.dom.ParameterizedType;
 import org.eclipse.jdt.core.dom.ReturnStatement;
 import org.eclipse.jdt.core.dom.SimpleName;
+import org.eclipse.jdt.core.dom.SimpleType;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.ThisExpression;
+import org.eclipse.jdt.core.dom.Type;
+import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
+import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 
 import fr.an.eclipse.pattern.util.JavaNamingUtil;
 
@@ -121,6 +129,21 @@ public class MatchASTUtils {
 		}
 		return true;
 	}
+
+	public static int findModifier(List<IExtendedModifier> src, ModifierKeyword modifierKeyword) {
+		final int len = src.size();
+		for(int i = 0; i < len; i++) {
+			IExtendedModifier elt = src.get(i);
+			if (elt instanceof Modifier) {
+				Modifier mod = (Modifier) elt;
+				if (mod.getKeyword() == modifierKeyword) {
+					return i;
+				}
+			}
+		}
+		return -1;
+	}
+
 	
 	public static Statement matchSingleStmtBlock(Block block) {
 		if (block == null) {
@@ -192,5 +215,44 @@ public class MatchASTUtils {
 		return (Assignment) expr;
 	}
 
+	public static Expression matchVarDeclSingleInitializer(Statement stmt) {
+		if (!(stmt instanceof VariableDeclarationStatement)) {
+			return null;
+		}
+		VariableDeclarationStatement vdecl = (VariableDeclarationStatement) stmt;
+		List<VariableDeclarationFragment> fragments = vdecl.fragments();
+		if (fragments.size() != 1) {
+			return null;
+		}
+		VariableDeclarationFragment frag0 = fragments.get(0);
+		Expression initializer = frag0.getInitializer();
+		return initializer;
+	}
+
+	public static boolean matchClassInstanceCreationDiamon(Expression expr) {
+		if (!( expr instanceof ClassInstanceCreation)) {
+			return false;
+		}
+		ClassInstanceCreation cic = (ClassInstanceCreation) expr;
+		Type cicType = cic.getType();
+		if (cicType.isParameterizedType()) {
+			if (cicType instanceof ParameterizedType) {
+				ParameterizedType pt = (ParameterizedType) cicType;
+				if (pt.typeArguments().isEmpty()) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	public static String matchSimpleTypeName(Type type) {
+		if (!(type instanceof SimpleType)) {
+			return null;
+		}
+		SimpleType st = (SimpleType) type;
+		return matchSimpleName(st.getName());
+	}
+	
 	
 }

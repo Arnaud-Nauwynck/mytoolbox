@@ -16,6 +16,7 @@ public class LombokifyRefactoringInputPage extends UserInputWizardPage {
 	
 //	protected Text scanPackageNameText;
 	protected Button getterSetterCheckbox;
+	protected Button valVarCheckbox;
 	
 	public LombokifyRefactoringInputPage(String name) {
 		super(name);
@@ -52,7 +53,6 @@ public class LombokifyRefactoringInputPage extends UserInputWizardPage {
 		getterSetterLabel.setLayoutData(gdLabel);
 		getterSetterLabel.setText("use @Getter,@Setter");
 		
-		
 		getterSetterCheckbox = new Button(result, SWT.CHECK);
 		getterSetterCheckbox.setSelection(true);
 		getterSetterCheckbox.addSelectionListener(new SelectionAdapter() {
@@ -62,6 +62,21 @@ public class LombokifyRefactoringInputPage extends UserInputWizardPage {
 				fRefactoring.setUseGetterSetter(value);
 			}
 		});
+
+		Label valVarLabel = new Label(result, 0);
+		valVarLabel.setLayoutData(new GridData());
+		valVarLabel.setText("use val, var (JEP286)");
+		
+		valVarCheckbox = new Button(result, SWT.CHECK);
+		valVarCheckbox.setSelection(true);
+		valVarCheckbox.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				boolean value = valVarCheckbox.getSelection(); 
+				fRefactoring.setUseValVar(value);
+			}
+		});
+
 	}
 	
 	protected boolean isInputValid() {

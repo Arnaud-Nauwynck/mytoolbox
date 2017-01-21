@@ -7,13 +7,23 @@ import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.jdt.core.ICompilationUnit;
+import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.BodyDeclaration;
+import org.eclipse.jdt.core.dom.ClassInstanceCreation;
 import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.eclipse.jdt.core.dom.EnhancedForStatement;
+import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.FieldDeclaration;
+import org.eclipse.jdt.core.dom.IExtendedModifier;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
+import org.eclipse.jdt.core.dom.Modifier.ModifierKeyword;
+import org.eclipse.jdt.core.dom.ParameterizedType;
+import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
+import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
+import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 
 import fr.an.eclipse.pattern.util.AbstractParsedCompilationUnitsRefactoring;
 import fr.an.eclipse.pattern.util.JavaASTUtil;
@@ -28,8 +38,11 @@ public class LombokifyRefactoring extends AbstractParsedCompilationUnitsRefactor
 	private static final String LOMBOK_PACKAGE = "lombok";
 	private static final String ANNOTATION_LOMBOK_GETTER_SIMPLENAME = "Getter";
 	private static final String ANNOTATION_LOMBOK_SETTER_SIMPLENAME = "Setter";
+	private static final String LOMBOK_VAL = "val";
+	private static final String LOMBOK_VAR = "var";
 
 	protected boolean useGetterSetter = true;
+	protected boolean useValVar = true;
 	
 
 	protected static class FieldGetterSetterDetection {
@@ -56,6 +69,10 @@ public class LombokifyRefactoring extends AbstractParsedCompilationUnitsRefactor
 		this.useGetterSetter = value;
 	}
 
+	public void setUseValVar(boolean value) {
+		this.useValVar = value;
+	}
+
 
 	@Override
 	public String getName() {
@@ -72,6 +89,9 @@ public class LombokifyRefactoring extends AbstractParsedCompilationUnitsRefactor
 	protected void doRefactorUnit(CompilationUnit unit, Object refactoringInfoObject) {
 		if (useGetterSetter) {
 			doRefactorUnit_GetterSetter(unit);
+		}
+		if (useValVar) {
+			doRefactorUnit_ValVar(unit);
 		}
 	}
 	
@@ -150,5 +170,105 @@ public class LombokifyRefactoring extends AbstractParsedCompilationUnitsRefactor
 		return res;
 	}
 
+	private static class RequiredLombokImports {
+		private boolean useLombokVar;
+		private boolean useLombokVal;
+
+		public void setUseValOrVar(boolean v) {
+			if (v) {
+				useLombokVal = true;
+			} else {
+				useLombokVar = true;
+			}
+		}
+		public void setUseVal() {
+			useLombokVal = true;
+		}
+		public void addImports(CompilationUnit unit) {
+			if (useLombokVal) {
+				JavaASTUtil.addImport(unit, "lombok.val");
+			}
+			if (useLombokVar) {
+				JavaASTUtil.addImport(unit, "lombok.var");
+			}
+		}
+	}
 	
+	protected void doRefactorUnit_ValVar(CompilationUnit unit) {
+		RequiredLombokImports requiredImports = new RequiredLombokImports();
+		ASTVisitor vis = new ASTVisitor() {
+			@Override
+			public boolean visit(VariableDeclarationStatement node) {
+				// detect pattern "Type varName = XXX"
+				Expression varDeclInit = MatchASTUtils.matchVarDeclSingleInitializer(node);
+				if (varDeclInit == null) {
+					return super.visit(node);
+				}
+				Type lhsType = node.getType();
+				boolean needReplaceByVal = needReplaceTypeNameToVar(lhsType);
+				if (! needReplaceByVal) {
+					return super.visit(node);
+				}
+				if (MatchASTUtils.matchClassInstanceCreationDiamon(varDeclInit)) {
+					// detected jdk8 diamond syntax: example: "List<SomeType> ls = new ArrayList<>();" 
+					// need to extract type from left hand side type decl, and put it back to right hand side!
+					if (lhsType.isParameterizedType()) {
+						List<Type> lhsTypeParams = ((ParameterizedType) lhsType).typeArguments();
+						// clone lhs type and add to rhs
+						ClassInstanceCreation rhsNew = (ClassInstanceCreation) varDeclInit;
+						ParameterizedType rhsNewType = (ParameterizedType) rhsNew.getType();
+						rhsNewType.typeArguments().addAll(JavaASTUtil.cloneASTNodeList(lhsTypeParams, unit.getAST()));
+					}
+				}
+
+				// Transform "Type varName = XXX" into "var varName = XX"
+				// check if variable is const or re-assigned later
+				VariableDeclarationStatement vdecl = (VariableDeclarationStatement) node;
+				List<IExtendedModifier> modifiers = vdecl.modifiers();
+				int finalModifierIdx = MatchASTUtils.findModifier(modifiers, ModifierKeyword.FINAL_KEYWORD);
+				boolean isConst = (finalModifierIdx != -1);
+				if (!isConst) {
+					// TODO detect if "effective final"
+				}
+				String lombokTypeRepl = isConst? LOMBOK_VAL : LOMBOK_VAR; 
+				requiredImports.setUseValOrVar(isConst);
+				if (isConst && (finalModifierIdx != -1)) {
+					// transform variable decl "final Type varName" => "val varName"
+					modifiers.remove(finalModifierIdx);
+				}
+				AST ast = unit.getAST();
+				vdecl.setType(ast.newSimpleType(ast.newName(lombokTypeRepl)));
+				
+				return super.visit(node);
+			}
+			
+			@Override
+			public boolean visit(EnhancedForStatement node) {
+				SingleVariableDeclaration forVarDecl = node.getParameter();
+				boolean needReplaceByVal = needReplaceTypeNameToVar(forVarDecl.getType());
+				if (needReplaceByVal) {
+					// do replace "for(Type varName : ..) .." => "for(var varName : ..) .."
+					AST ast = unit.getAST();
+					forVarDecl.setType(ast.newSimpleType(ast.newName(LOMBOK_VAL)));
+					requiredImports.setUseVal();
+				}				
+				return super.visit(node);
+			}
+		};
+		unit.accept(vis);
+		requiredImports.addImports(unit);
+	}
+
+	private static boolean needReplaceTypeNameToVar(Type varDeclType) {
+		String varDeclTypeName = MatchASTUtils.matchSimpleTypeName(varDeclType);
+		if (varDeclTypeName != null && (varDeclTypeName.equals(LOMBOK_VAL) || varDeclTypeName.equals(LOMBOK_VAR))) {
+			return false; // ok, already a lombok type!
+		}
+		if (varDeclType.isPrimitiveType() || "String".equals(varDeclTypeName)) {
+			// do not replace already primitive type int, double, boolean, and also String...  
+			return false;
+		}
+		return true;
+	}
+
 }

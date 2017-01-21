@@ -783,25 +783,34 @@ public class JavaASTUtil {
 	}
 	
 	@SuppressWarnings("unchecked")
-	public static <T extends ASTNode> T cloneASTNode(final T astNode, AST ast) {
-		final ASTNode createdInstance = ast.createInstance(astNode.getClass());
-		final List<?> structuralPropertiesForType = astNode.structuralPropertiesForType();
+	public static <T extends ASTNode> T cloneASTNode(final T srcNode, AST ast) {
+		final ASTNode res = ast.createInstance(srcNode.getClass());
+		final List<?> structuralPropertiesForType = srcNode.structuralPropertiesForType();
 		for (final Object o : structuralPropertiesForType) {
 			final StructuralPropertyDescriptor descriptor = (StructuralPropertyDescriptor) o;
 			if (descriptor.isChildListProperty()) {
-				final List<Object> list = (List<Object>) astNode.getStructuralProperty(descriptor);
-				for (final Object propertyValue : (List<Object>) astNode.getStructuralProperty(descriptor)) {
-					list.add(propertyValue instanceof ASTNode ? cloneASTNode((ASTNode) propertyValue, ast) : propertyValue);
+				final List<Object> srcList = (List<Object>) srcNode.getStructuralProperty(descriptor);
+				final List<Object> resList = (List<Object>) res.getStructuralProperty(descriptor);
+				for (final Object propertyValue : srcList) {
+					resList.add(propertyValue instanceof ASTNode ? cloneASTNode((ASTNode) propertyValue, ast) : propertyValue);
 				}
 			} else {
-				final Object propertyValue = astNode.getStructuralProperty(descriptor);
-				createdInstance.setStructuralProperty(descriptor,
+				final Object propertyValue = srcNode.getStructuralProperty(descriptor);
+				res.setStructuralProperty(descriptor,
 						propertyValue instanceof ASTNode ? cloneASTNode((ASTNode) propertyValue, ast) : propertyValue);
 			}
 		}
-		return (T) createdInstance;
+		return (T) res;
 	}
-	
+
+	public static <T extends ASTNode> List<T> cloneASTNodeList(List<T> astNode, AST ast) {
+		List<T> res = new ArrayList<T>();
+		for(T e : astNode) {
+			res.add(cloneASTNode(e, ast));
+		}
+		return res;
+	}
+
 	public static <T extends ASTNode> void insertBefore(List<T> parent, T insertLocation, T element) {
 		int index = parent.indexOf(insertLocation);
 		if (index != -1) {
