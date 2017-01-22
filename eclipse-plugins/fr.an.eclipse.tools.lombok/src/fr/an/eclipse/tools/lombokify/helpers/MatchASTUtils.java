@@ -12,7 +12,6 @@ import org.eclipse.jdt.core.dom.IExtendedModifier;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.Modifier;
 import org.eclipse.jdt.core.dom.Modifier.ModifierKeyword;
-import org.eclipse.jdt.core.dom.Name;
 import org.eclipse.jdt.core.dom.ParameterizedType;
 import org.eclipse.jdt.core.dom.ReturnStatement;
 import org.eclipse.jdt.core.dom.SimpleName;
@@ -23,6 +22,7 @@ import org.eclipse.jdt.core.dom.ThisExpression;
 import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
+import org.eclipse.jdt.core.dom.NullLiteral;
 
 import fr.an.eclipse.pattern.util.JavaNamingUtil;
 
@@ -226,6 +226,9 @@ public class MatchASTUtils {
 		}
 		VariableDeclarationFragment frag0 = fragments.get(0);
 		Expression initializer = frag0.getInitializer();
+		if (initializer instanceof NullLiteral) {
+			return null;
+		}
 		return initializer;
 	}
 
