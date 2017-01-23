@@ -103,6 +103,9 @@ public class MatchASTUtils {
 			return null;
 		}
 		Assignment assign = matchAssignmentStmt(bodyStmt);
+		if (assign == null) {
+			return null;
+		}
 		Expression lhs = assign.getLeftHandSide();
 		Expression rhs = assign.getRightHandSide();
 		String fieldName = matchSimpleName_or_ThisSimpleName(lhs);

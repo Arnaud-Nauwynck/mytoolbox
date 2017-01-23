@@ -39,7 +39,11 @@ public class LombokifyRefactoring extends AbstractParsedCompilationUnitsRefactor
 	private static final String ANNOTATION_LOMBOK_GETTER_SIMPLENAME = "Getter";
 	private static final String ANNOTATION_LOMBOK_SETTER_SIMPLENAME = "Setter";
 	private static final String LOMBOK_VAL = "val";
+	private static final String LOMBOK_VAL_FQN = LOMBOK_PACKAGE + "." + LOMBOK_VAL;
+	
+	private static final String LOMBOK_EXPERIMENTAL_PACKAGE = "lombok.experimental";
 	private static final String LOMBOK_VAR = "var";
+	private static final String LOMBOK_VAR_FQN = LOMBOK_EXPERIMENTAL_PACKAGE + "." + LOMBOK_VAR;
 
 	protected boolean useGetterSetter = true;
 	protected boolean useValVar = true;
@@ -186,10 +190,10 @@ public class LombokifyRefactoring extends AbstractParsedCompilationUnitsRefactor
 		}
 		public void addImports(CompilationUnit unit) {
 			if (useLombokVal) {
-				JavaASTUtil.addImport(unit, "lombok.val");
+				JavaASTUtil.addImport(unit, LOMBOK_VAL_FQN);
 			}
 			if (useLombokVar) {
-				JavaASTUtil.addImport(unit, "lombok.var");
+				JavaASTUtil.addImport(unit, LOMBOK_VAR_FQN);
 			}
 		}
 	}
@@ -204,6 +208,9 @@ public class LombokifyRefactoring extends AbstractParsedCompilationUnitsRefactor
 				if (varDeclInit == null) {
 					return super.visit(node);
 				}
+				List<VariableDeclarationFragment> fragments = node.fragments();
+				VariableDeclarationFragment vdeclFrag = fragments.get(0); 
+				
 				Type lhsType = node.getType();
 				boolean needReplaceByVal = needReplaceTypeNameToVar(lhsType);
 				if (! needReplaceByVal) {
@@ -221,15 +228,31 @@ public class LombokifyRefactoring extends AbstractParsedCompilationUnitsRefactor
 					}
 				}
 
+				// TODO
+				// Transform old C-style "Type varName[][] = xx" into "Type[][] varName = xx"
+				
+				// TODO Transform array literal due to lombok bug limitation :
+				// "Type[] varName = { var1, val2 .. }" => "Type[] varName = new Type[]{ var1, val2 .. }"
+				
+				
 				// Transform "Type varName = XXX" into "var varName = XX"
 				// check if variable is const or re-assigned later
-				VariableDeclarationStatement vdecl = (VariableDeclarationStatement) node;
-				List<IExtendedModifier> modifiers = vdecl.modifiers();
+				List<IExtendedModifier> modifiers = node.modifiers();
 				int finalModifierIdx = MatchASTUtils.findModifier(modifiers, ModifierKeyword.FINAL_KEYWORD);
 				boolean isConst = (finalModifierIdx != -1);
 				if (!isConst) {
-					// TODO detect if "effective final"
+					// detect if "effective final"
+					MethodDeclaration parentMeth = JavaASTUtil.getParentMethodDeclaration(node);
+					isConst = ! LocalVarAssignmentDetecter.tempHasAssignmentsOtherThanInitialization(parentMeth, vdeclFrag);
+
+					// TODO !!!! HORRIBLE BUG in Lombok ... var really not supported at all !!!
+					if (!isConst) {
+						return super.visit(node);
+					}
 				}
+				
+				
+				
 				String lombokTypeRepl = isConst? LOMBOK_VAL : LOMBOK_VAR; 
 				requiredImports.setUseValOrVar(isConst);
 				if (isConst && (finalModifierIdx != -1)) {
@@ -237,7 +260,7 @@ public class LombokifyRefactoring extends AbstractParsedCompilationUnitsRefactor
 					modifiers.remove(finalModifierIdx);
 				}
 				AST ast = unit.getAST();
-				vdecl.setType(ast.newSimpleType(ast.newName(lombokTypeRepl)));
+				node.setType(ast.newSimpleType(ast.newName(lombokTypeRepl)));
 				
 				return super.visit(node);
 			}
