@@ -19,13 +19,12 @@ public class SteganoDecodeMainTest {
         }
         outputDir.mkdirs();
         
-        SteganoDecodeMain sut = new SteganoDecodeMain();
+        GetDecodeAndUnzipMain sut = new GetDecodeAndUnzipMain();
         sut.setInputDir(inputDir);
         sut.setInputFileBaseName("test1");
-        sut.setInputFileExt(".png");
+        sut.setInputFileExt("bmp");
         sut.setOutputDir(outputDir);
         sut.setDecodeZipOnly(true);
-        sut.setOutputFilename("test1");
         // Perform
         sut.run();
         // Post-check
@@ -46,7 +45,7 @@ public class SteganoDecodeMainTest {
         }
         outputDir.mkdirs();
         
-        SteganoDecodeMain sut = new SteganoDecodeMain();
+        GetDecodeAndUnzipMain sut = new GetDecodeAndUnzipMain();
         sut.setInputDir(inputDir);
         sut.setInputFileBaseName("test1");
         sut.setInputFileExt(".png");
@@ -71,7 +70,7 @@ public class SteganoDecodeMainTest {
         }
         outputDir.mkdirs();
         
-        SteganoDecodeMain sut = new SteganoDecodeMain();
+        GetDecodeAndUnzipMain sut = new GetDecodeAndUnzipMain();
         sut.setInputDir(inputDir);
         sut.setInputFileBaseName("test1");
         sut.setInputFileExt(".png");

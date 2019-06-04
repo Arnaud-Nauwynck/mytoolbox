@@ -1,4 +1,4 @@
-package fr.an.img.stegano.split;
+package fr.an.img.stegano.split.impl;
 
 import java.io.IOException;
 import java.io.InputStream;

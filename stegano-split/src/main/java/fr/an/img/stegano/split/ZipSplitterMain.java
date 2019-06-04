@@ -12,7 +12,7 @@ public class ZipSplitterMain {
 
     private String inputFilename;
     private String outputFilename;
-    private int maxPartLen = 1*1024*1024; // 1 Mo
+    private int maxPartLen = 4*1024*1024; // 1 Mo
     private String extName = ".png"; //".zip";
     
     public static void main(String[] args) {

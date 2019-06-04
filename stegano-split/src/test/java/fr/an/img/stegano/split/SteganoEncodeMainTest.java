@@ -19,12 +19,11 @@ public class SteganoEncodeMainTest {
             FileUtils.deleteDirectory(outputDir);
         }
         outputDir.mkdirs();
-        SteganoEncodeMain sut = new SteganoEncodeMain();
+        ScanZipEncodeAndPutMain sut = new ScanZipEncodeAndPutMain();
         sut.setInputDir(inputDir);
         // sut.setExtName(".png");
-        sut.setMaxPartLen(10000);
         sut.setOutputDir(outputDir);
-        sut.setOutputFilename("test1");
+        sut.setOutputImageName("test1");
         // Perform
         sut.run();
         // Post-check
@@ -48,12 +47,11 @@ public class SteganoEncodeMainTest {
             FileUtils.deleteDirectory(outputDir);
         }
         outputDir.mkdirs();
-        SteganoEncodeMain sut = new SteganoEncodeMain();
+        ScanZipEncodeAndPutMain sut = new ScanZipEncodeAndPutMain();
         sut.setInputDir(inputDir);
         // sut.setMaxPartLen(2*1024*1024);
         sut.setOutputDir(outputDir);
-        sut.setOutputFilename("test1");
-        sut.setOutputZipPath("plugins/");
+        sut.setOutputImageName("test1");
         // Perform
         sut.run();
         // Post-check
