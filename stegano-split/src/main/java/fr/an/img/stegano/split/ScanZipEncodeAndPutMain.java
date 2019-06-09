@@ -8,6 +8,7 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
@@ -35,12 +36,12 @@ public class ScanZipEncodeAndPutMain {
     
     @Getter @Setter
     private File inputImagesDir;
+    @Getter @Setter
+    private int inputImagesFirstIndex;
 
-    
-    
     @Getter @Setter
     private String password;
-    
+
     @Getter @Setter
     private File outputDir;
     @Getter @Setter
@@ -75,9 +76,8 @@ public class ScanZipEncodeAndPutMain {
     }
 
     // ------------------------------------------------------------------------
-    
-    
-    public void parseArgs(String[] args) {
+
+   public void parseArgs(String[] args) {
         for (int i = 0; i < args.length; i++) {
             String a = args[i];
             if (a.equals("-i")) {
@@ -88,10 +88,12 @@ public class ScanZipEncodeAndPutMain {
                 inputDir = new File(args[++i]);
             } else if (a.equals("--inputImagesDir")) {
                 inputImagesDir = new File(args[++i]);
+            } else if (a.equals("--inputImagesFirstIndex")) {
+                inputImagesFirstIndex = Integer.parseInt(args[++i]);
             } else if (a.equals("--outputImageName")) {
                 outputImageName = args[++i];
             } else if (a.equals("--outputIndexHtmlFileName")) {
-            	outputIndexHtmlFileName = args[++i]; 
+                outputIndexHtmlFileName = args[++i]; 
             } else if (a.equals("--outputDir")) {
                 outputDir = new File(args[++i]);
             } else if (a.equals("--password")) {
@@ -108,10 +110,10 @@ public class ScanZipEncodeAndPutMain {
             outputImageName = "photo";
         }
         if (outputPageBaseHtmlFilename == null) {
-        	outputPageBaseHtmlFilename = "index-" + outputImageName; 
+            outputPageBaseHtmlFilename = "index-" + outputImageName; 
         }
     }
-        
+
     public void run() throws Exception {
         if (outputDir == null) {
             try {
@@ -127,54 +129,57 @@ public class ScanZipEncodeAndPutMain {
         }
 
         System.out.println("Scanning inputDir=" + inputDir + " => zip+split+encode into outputDir=" + outputDir);
-        
+
         List<File> inputImageFiles = new ArrayList<>();
         if (inputImagesDir != null && inputImagesDir.exists() && inputImagesDir.isDirectory()) {
-        	inputImageFiles.addAll(Arrays.asList(inputImagesDir.listFiles()));
+            inputImageFiles.addAll(Arrays.asList(inputImagesDir.listFiles()));
+            if (inputImagesFirstIndex < 0) {
+                inputImagesFirstIndex = new Random().nextInt(inputImageFiles.size()-1);
+            }
         }
         Supplier<BufferedImage> rawImagesSupplier = new Supplier<BufferedImage>() {
-            int roundRobin;
+            int roundRobin = inputImagesFirstIndex;
 
             @Override
             public BufferedImage get() {
-            	if (!inputImageFiles.isEmpty()) {
-	                for (int tryCount = 0; tryCount < 5; tryCount++) {
-	                	try {
-		                	BufferedImage res = tryGetImage(inputImageFiles.get(roundRobin++));
-		                	if (res != null) {
-		                		return res;
-		                	}
-	                	} catch(Exception ex) {
-	                		// ignore .. try more
-	                		continue;
-	                	}
-	                }
-            	}
+                if (!inputImageFiles.isEmpty()) {
+                    for (int tryCount = 0; tryCount < 5; tryCount++) {
+                        try {
+                            BufferedImage res = tryGetImage(inputImageFiles.get(roundRobin++));
+                            if (res != null) {
+                                return res;
+                            }
+                        } catch(Exception ex) {
+                            // ignore .. try more
+                            continue;
+                        }
+                    }
+                }
                 return createImage();
             }
             
             public BufferedImage createImage() {
-            	BufferedImage img = Img3ByteUtils.create3ByteBGRImage(3000, 3000);
+                BufferedImage img = Img3ByteUtils.create3ByteBGRImage(3000, 3000);
                 ImgUtils.dummyDrawStringInImage(img);
                 return img;
             }
             
             public BufferedImage tryGetImage(File imgFile) {
-        		BufferedImage rawImg;
-        		try {
-        			rawImg = ImgUtils.readImage(imgFile);
-        		} catch(Exception ex) {
-        			System.err.println("Failed to load img '" + imgFile + "' ..ignore " + ex.getMessage());
-        			return null;
-        		}
-        		// convert to BufferedImage.TYPE_3BYTE_BGR
-        		try {
-        			BufferedImage img3Bgr = Img3ByteUtils.to3ByteBGRImage(rawImg);
-        			return img3Bgr;
-        		} catch(Exception ex) {
-        			System.err.println("Failed to convert img to 3bytes BGR '" + imgFile + "' ..ignore " + ex.getMessage());
-        		}
-        		return null;
+                BufferedImage rawImg;
+                try {
+                    rawImg = ImgUtils.readImage(imgFile);
+                } catch(Exception ex) {
+                    System.err.println("Failed to load img '" + imgFile + "' ..ignore " + ex.getMessage());
+                    return null;
+                }
+                // convert to BufferedImage.TYPE_3BYTE_BGR
+                try {
+                    BufferedImage img3Bgr = Img3ByteUtils.to3ByteBGRImage(rawImg);
+                    return img3Bgr;
+                } catch(Exception ex) {
+                    System.err.println("Failed to convert img to 3bytes BGR '" + imgFile + "' ..ignore " + ex.getMessage());
+                }
+                return null;
             }
         };
 
@@ -192,18 +197,17 @@ public class ScanZipEncodeAndPutMain {
             // upload file..
         };
         
+        Random rand = new Random(password.hashCode());
+        
         try(val toImagesOutputStream = 
-                new ToImagesOutputStream(rawImagesSupplier, imagesConsumer)
-//                new BufferedOutputStream(new FileOutputStream(new File(outputDir, outputImageName + ".zip")))
+                new ToImagesOutputStream(rawImagesSupplier, rand, imagesConsumer)
                 ) {
         
             OutputStream encryptOutputStream = 
                 CryptoUtils.createEncryptOutputStreamFilter(toImagesOutputStream, password);
-//                    toImagesOutputStream;
         
             val zipOutputStreamFileCopier = new ZipOutputStreamFilesCopier(
                     new BufferedOutputStream(encryptOutputStream, 1024*1024));
-            
             
             try {
                 

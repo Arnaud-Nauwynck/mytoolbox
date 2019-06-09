@@ -2,6 +2,7 @@ package fr.an.img.stegano.split.img;
 
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
+import java.util.Random;
 
 import fr.an.img.stegano.split.impl.Crc32Utils;
 
@@ -24,21 +25,25 @@ public class Img3ByteUtils {
     }
 
     public static BufferedImage to3ByteBGRImage(BufferedImage source) {
-    	BufferedImage dest = create3ByteBGRImage(source.getWidth(), source.getHeight());
-    	ImgUtils.copyImage(dest, source);
-    	return dest;
+        BufferedImage dest = create3ByteBGRImage(source.getWidth(), source.getHeight());
+        ImgUtils.copyImage(dest, source);
+        return dest;
     }
 
     public static int lsb4BytesCountFor(BufferedImage dest) {
         final int w = dest.getWidth(), h = dest.getHeight();
         final int bytesCount = w * h * 3 
                 - 16;  // for encoding length, crc32
-        final int maxIdx = bytesCount - bytesCount % 8;
-        int res = maxIdx / 2;
-        return res;
+        final int maxIdx = bytesCount - bytesCount % 8 - 3;
+        int res = maxIdx / 2 // : /2 = *4 lsb bits for /8 bits
+                /2; // : /2 for 1 out of 2 pixels encoded
+        return res
+                - 42; // because 42 is the answer :)
     }
     
-    public static void putLsb4Bits(BufferedImage dest, byte[] encodeIn, int encodedLen) {
+    public static void putLsb4Bits(BufferedImage dest, 
+            byte[] encodeIn, int encodedLen,
+            Random rand) {
         DataBufferByte dataBuffer = (DataBufferByte) dest.getRaster().getDataBuffer();
         byte[] destData = dataBuffer.getData();
         final int w = dest.getWidth(), h = dest.getHeight();
@@ -47,7 +52,7 @@ public class Img3ByteUtils {
         if (DEBUG_HEADER) {
             System.out.println(" length to encode:" + encodedLen + " crc32:" + crc32 + " from " + w + "x" + h + "*rgb=" + imgBytesCount );
         }
-        final int maxIdx = imgBytesCount - imgBytesCount % 8;
+        final int maxIdx = imgBytesCount - imgBytesCount % 8 - 3;
         int currBitsRemain = 0;
         int currBits = 0;
         int encodeIdx = 0;
@@ -72,36 +77,52 @@ public class Img3ByteUtils {
             }
         }
 
+        int channel = 0;
         for(int idx = 16; idx < maxIdx; idx++) {
             if (currBitsRemain == 0) {
-                if (encodeIdx > encodedLen) {
+                if (encodeIdx >= encodedLen) {
                     break;
                 }
                 currBits = encodeIn[encodeIdx] & MASK_INT_00FF;
                 currBitsRemain = 8;
 
-                if (DEBUG_SUMMARY) {
+                if (DEBUG) {
                     if (encodeIdx < 6 || encodeIdx >= encodedLen-6) {
                         System.out.println(" encoded[" + encodeIdx + "]:" + currBits);
                     }
                 }
-
                 ++encodeIdx;
             }
             int msb = (currBits & MASK_INT_00F0) >> 4;
             currBits = currBits << 4;
             currBitsRemain -= CST4;
             
-            byte prev = destData[idx];
-            destData[idx] = withLsb4Bits(destData[idx], (byte) msb);
+            boolean randIndex = rand.nextBoolean();
+            int idxRand = idx + ((randIndex)? 3 : 0);
+            int idxOtherRand = idx + ((randIndex)? 0 : 3);
 
+            byte prevData = destData[idxRand];
+            destData[idxRand] = withLsb4Bits(destData[idxRand], (byte) msb);
+            byte nextData = destData[idxRand];
+            
+            int nextDataInt = (0xFF & nextData);
+            int prevDataInt = (0xFF & prevData);
+            int encodeShiftInt = nextDataInt - prevDataInt;
+            int prevOtherDataInt = (0xFF & destData[idxOtherRand]);
+            int destDataOtherInt = prevOtherDataInt - encodeShiftInt;
+            int targetDestDataOtherInt = Math.max(0, Math.min(destDataOtherInt, 0xFF));
+            destData[idxOtherRand] = (byte) (0xFF & targetDestDataOtherInt);
+            byte nextOtherData = destData[idxOtherRand];
+            
             if (DEBUG_SUMMARY) {
                 if (encodeIdx < 6 || encodeIdx >= encodedLen-6) {
-                    System.out.println(" msb4[" + idx + "] " + prev + " |& " + msb + "=" + destData[idx]);
+                    System.out.println(" msb4[" + idx + "] " + prevData + " |& " + msb + "=" + destData[idx]);
                 }
             }
-
-        
+            if (++channel == 3) {
+                idx += 3;
+                channel = 0;
+            }
         }
         
         final int imgBytes = w * h * 3;
@@ -115,7 +136,9 @@ public class Img3ByteUtils {
         }
     }
 
-    public static int getLsb4Bits(byte[] decodeOut, BufferedImage img) {
+    public static int getLsb4Bits(byte[] decodeOut, 
+            BufferedImage img,
+            Random rand) {
         DataBufferByte dataBuffer = (DataBufferByte) img.getRaster().getDataBuffer();
         byte[] imgData = dataBuffer.getData();
         final int w = img.getWidth(), h = img.getHeight();
@@ -146,24 +169,27 @@ public class Img3ByteUtils {
             resDecodedCrc32 = crc32Bits;
         }
         if (DEBUG_HEADER) {
-        	System.out.println(" length to decode:" + resDecodedLen + " crc32:" + resDecodedCrc32 + " from " + w + "x" + h + "*rgb=" + bytesCount );
+            System.out.println(" length to decode:" + resDecodedLen + " crc32:" + resDecodedCrc32 + " from " + w + "x" + h + "*rgb=" + bytesCount );
         }
         
-        final int maxIdx = bytesCount - bytesCount % 8;
+        final int maxIdx = bytesCount - bytesCount % 8 - 3;
         int currBitsCount = 0;
         int currBits = 0;
         int decodeIdx = 0;
+        int channel = 0;
         for(int idx = 16; idx < maxIdx; idx++) {
-            int msb = imgData[idx] & MASK_BYTE_LSB4;
+
+            boolean randIndex = rand.nextBoolean();
+            int idxToEncode = idx + ((randIndex)? 3 : 0);
+            int msb = imgData[idxToEncode] & MASK_BYTE_LSB4;
             currBits = (currBits << 4) | msb;
             currBitsCount += CST4;
             if (DEBUG) {
                 if (decodeIdx < 6 || decodeIdx >= resDecodedLen-6) {
-                    System.out.println(" msb4[" + idx + "]: .. &| " + msb + " = " + imgData[idx]);
+                    System.out.println(" lsb4[" + idxToEncode + "]: .. &| " + msb + " = " + imgData[idx]);
                 }
             }
 
-            
             if (currBitsCount == 8) {
                 decodeOut[decodeIdx] = (byte) currBits;
                 if (DEBUG) {
@@ -171,7 +197,7 @@ public class Img3ByteUtils {
                         System.out.println(" decoded[" + decodeIdx + "]:" + decodeOut[decodeIdx]);
                     }
                 }
-                        
+
                 decodeIdx++;
                 if (decodeIdx >= resDecodedLen) {
                     break;
@@ -179,8 +205,12 @@ public class Img3ByteUtils {
                 currBitsCount = 0;
                 currBits = 0;
             }
+            if (++channel == 3) {
+                idx += 3;
+                channel = 0;
+            }
         }
-        
+
         long checkCrc32 = Crc32Utils.crc32(decodeOut, 0, resDecodedLen);
         if ((int)resDecodedCrc32 != (int)checkCrc32) {
             System.err.println("**** mismatch crc32 ! " + resDecodedCrc32 + " != recomputed " + checkCrc32);

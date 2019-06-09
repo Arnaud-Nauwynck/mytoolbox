@@ -23,11 +23,17 @@ public class Img32BitsRGBUtils {
 //    private static final int MASK_INT_FF00 = 0xFF00;
     
     public static BufferedImage createRGB32Image(int w, int h) {
-	    int transferType = DataBuffer.TYPE_INT;
-	    ColorModel colorModel = new ComponentColorModel(ColorSpace.getInstance(ColorSpace.CS_sRGB), 
-			  false, false, Transparency.OPAQUE, transferType);
-	    WritableRaster raster = colorModel.createCompatibleWritableRaster(w, h);
-	    return new BufferedImage(colorModel, raster, false, null);
+        int transferType = DataBuffer.TYPE_INT;
+        ColorModel colorModel = new ComponentColorModel(ColorSpace.getInstance(ColorSpace.CS_sRGB), 
+              false, false, Transparency.OPAQUE, transferType);
+        WritableRaster raster = colorModel.createCompatibleWritableRaster(w, h);
+
+        int[] destData = ((DataBufferInt) raster.getDataBuffer()).getData();
+        final int imgDataCount = w * h * 3;
+        if (destData.length != imgDataCount) {
+            throw new RuntimeException("");
+        }
+        return new BufferedImage(colorModel, raster, false, null);
     }
 
     public static int lsb8BytesCountFor(BufferedImage dest) {
@@ -38,7 +44,7 @@ public class Img32BitsRGBUtils {
     }
 
     public static void putLsb8Bits(BufferedImage dest, byte[] encodeIn, int encodedLen) {
-    	DataBufferInt dataBuffer = (DataBufferInt) dest.getRaster().getDataBuffer();
+        DataBufferInt dataBuffer = (DataBufferInt) dest.getRaster().getDataBuffer();
         int[] destData = dataBuffer.getData();
         final int w = dest.getWidth(), h = dest.getHeight();
         final int imgDataCount = w * h * 3;
@@ -95,7 +101,7 @@ public class Img32BitsRGBUtils {
     }
 
     public static int getLsb8Bits(byte[] decodeOut, BufferedImage img) {
-    	DataBufferInt dataBuffer = (DataBufferInt) img.getRaster().getDataBuffer();
+        DataBufferInt dataBuffer = (DataBufferInt) img.getRaster().getDataBuffer();
         int[] imgData = dataBuffer.getData();
         final int w = img.getWidth(), h = img.getHeight();
         final int bytesCount = w * h * 3;

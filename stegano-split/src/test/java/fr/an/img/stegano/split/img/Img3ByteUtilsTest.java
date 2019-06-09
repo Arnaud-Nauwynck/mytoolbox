@@ -2,6 +2,7 @@ package fr.an.img.stegano.split.img;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.util.Random;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -20,7 +21,8 @@ public class Img3ByteUtilsTest {
             data[i] = (byte) i;
         }
         
-        Img3ByteUtils.putLsb4Bits(img, data, data.length);
+        Random rand = new Random(0);
+        Img3ByteUtils.putLsb4Bits(img, data, data.length, rand);
         ImgUtils.saveImage(img, "bmp", new File("test.bmp"));
     }
     
@@ -36,7 +38,8 @@ public class Img3ByteUtilsTest {
             data[i] = (byte) i;
         }
         byte[] checkData = new byte[lsbBytesCount];
-        Img3ByteUtils.getLsb4Bits(checkData, checkImg);
+        Random rand = new Random(0);
+        Img3ByteUtils.getLsb4Bits(checkData, checkImg, rand);
 
         for(int i = 0; i < lsbBytesCount; i++) {
             if (data[i] != checkData[i]) {

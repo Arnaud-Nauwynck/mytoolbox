@@ -13,6 +13,7 @@ import lombok.AllArgsConstructor;
 public class ToImagesOutputStream extends OutputStream {
 
     private Supplier<BufferedImage> imagesSupplier;
+    private Random rand;
     
     @AllArgsConstructor
     public static class ImageDataFragment {
@@ -32,8 +33,10 @@ public class ToImagesOutputStream extends OutputStream {
     private int currentDataMax;
     
     public ToImagesOutputStream(Supplier<BufferedImage> imagesSupplier,
+            Random rand,
             Consumer<ImageDataFragment> imagesConsumer) {
         this.imagesSupplier = imagesSupplier;
+        this.rand = rand;
         this.imagesConsumer = imagesConsumer;
         allocImage();
     }
@@ -96,7 +99,7 @@ public class ToImagesOutputStream extends OutputStream {
                 currentData[i] = (byte) r.nextInt(255); // r.nextBytes(bytes);
             }
             // put data in image..
-            Img3ByteUtils.putLsb4Bits(currentImage, currentData, currentDataLen);
+            Img3ByteUtils.putLsb4Bits(currentImage, currentData, currentDataLen, rand);
             long crc32 = Crc32Utils.crc32(currentData, 0, currentDataLen);
             
             imagesConsumer.accept(new ImageDataFragment(currentImage, currentImageIndex++, currentDataLen, crc32));

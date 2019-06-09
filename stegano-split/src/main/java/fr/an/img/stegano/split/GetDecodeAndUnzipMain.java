@@ -5,6 +5,7 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
+import java.util.Random;
 
 import fr.an.img.stegano.split.img.Img3ByteUtils;
 import fr.an.img.stegano.split.img.ImgUtils;
@@ -88,6 +89,7 @@ public class GetDecodeAndUnzipMain {
                         new BufferedOutputStream(new FileOutputStream(zipFile))
                 , password)
                 ) {
+            Random rand = new Random(password.hashCode());
             
             for (int i = 1; ; i++) {
                 File imgFile = new File(inputDir, inputFileBaseName + "-" + i + "." + inputFileExt);
@@ -105,7 +107,7 @@ public class GetDecodeAndUnzipMain {
                     if (maxDecodedLen >= decodeBuffer.length) {
                         decodeBuffer = new byte[maxDecodedLen];
                     }
-                    int decodedLen = Img3ByteUtils.getLsb4Bits(decodeBuffer, img);
+                    int decodedLen = Img3ByteUtils.getLsb4Bits(decodeBuffer, img, rand);
                     long decodeCrc32 = Crc32Utils.crc32(decodeBuffer, 0, decodedLen);
                     System.out.println("decode load fragment " + imgFile + " len:" + decodedLen + " crc:" + decodeCrc32);
                     
@@ -119,13 +121,13 @@ public class GetDecodeAndUnzipMain {
 
         System.out.println("Unzipping to dir:" + outputDir);
         try {
-        	ZipUtils.unzipToDir(outputDir, zipFile);
+            ZipUtils.unzipToDir(outputDir, zipFile);
 
-        	zipFile.delete();
+            zipFile.delete();
         } catch(Exception ex) {
-        	String msg = "Failed to restore unzip from file '" + zipFile + "' " + ex.getMessage();
-			System.err.println(msg);
-        	throw new RuntimeException(msg, ex);
+            String msg = "Failed to restore unzip from file '" + zipFile + "' " + ex.getMessage();
+            System.err.println(msg);
+            throw new RuntimeException(msg, ex);
         }
     }
 
